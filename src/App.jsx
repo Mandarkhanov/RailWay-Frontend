@@ -1,8 +1,10 @@
 import AdminLayout from './components/AdminLayout';
-import './App.css'; 
+import './App.css';
 
-export default function App() {
+function App() {
   return (
     <AdminLayout />
   );
 }
+
+export default App;

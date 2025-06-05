@@ -51,6 +51,24 @@ export default function SideBar({ setActiveView, activeView }) {
       >
         Должности
       </SidebarButton>
+      <SidebarButton
+        onClick={() => setActiveView('employees')}
+        isActive={activeView === 'employees'}
+      >
+        Сотрудники
+      </SidebarButton>
+      <SidebarButton
+        onClick={() => setActiveView('brigades')}
+        isActive={activeView === 'brigades'}
+      >
+        Бригады
+      </SidebarButton>
+      <SidebarButton
+        onClick={() => setActiveView('medical-examinations')}
+        isActive={activeView === 'medical-examinations'}
+      >
+        Медосмотры
+      </SidebarButton>
     </SidebarContainer>
   );
 }

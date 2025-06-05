@@ -1,8 +1,11 @@
 import { useState } from 'react';
 import styled from 'styled-components';
 import SideBar from './SideBar';
-import DepartmentsPage from './DepartmentsPage';
-import PositionsPage from './PositionsPage';
+import DepartmentsPage from '../pages/DepartmentsPage';
+import PositionsPage from '../pages/PositionsPage';
+import EmployeesPage from '../pages/EmployeesPage';
+import BrigadesPage from '../pages/BrigadesPage';
+import MedicalExaminationsPage from '../pages/MedicalExaminationsPage';
 
 const LayoutContainer = styled.div`
   display: flex;
@@ -23,7 +26,7 @@ const PlaceholderText = styled.p`
 `;
 
 export default function AdminLayout() {
-  const [activeView, setActiveView] = useState(null); // 'departments', 'positions', or null
+  const [activeView, setActiveView] = useState(null); // 'departments', 'positions', 'employees', 'brigades', 'medical-examinations' or null
 
   const renderView = () => {
     switch (activeView) {
@@ -31,6 +34,12 @@ export default function AdminLayout() {
         return <DepartmentsPage />;
       case 'positions':
         return <PositionsPage />;
+      case 'employees':
+        return <EmployeesPage />;
+      case 'brigades':
+        return <BrigadesPage />;
+      case 'medical-examinations':
+        return <MedicalExaminationsPage />;
       default:
         return <PlaceholderText>Выберите раздел в меню слева.</PlaceholderText>;
     }
