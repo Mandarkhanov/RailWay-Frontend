@@ -1,15 +1,29 @@
 import styled from 'styled-components';
 
+const getCardBackground = (props) => {
+  // Исправленная проверка: теперь она сработает и для boolean `false`, и для строки "false"
+  if (props.isActive === false || props.isActive === 'false') {
+    return '#fff0f0'; // Светло-красный для неактивных сотрудников
+  }
+  if (props.isSuccess === true) {
+    return '#f0fff0'; // Светло-зеленый для "годен"
+  }
+  if (props.isSuccess === false) {
+    return '#fff0f0'; // Светло-красный для "не годен"
+  }
+  return '#fff'; // По умолчанию
+};
+
 export const Card = styled.div`
-  background-color: #fff;
+  background-color: ${props => getCardBackground(props)};
   border: 1px solid #ddd;
   border-radius: 8px;
-  padding: 15px;
-  margin: 10px;
+  padding: 10px 15px;
   box-shadow: 0 2px 4px rgba(0,0,0,0.1);
-  width: 300px; /* Примерная ширина, можно адаптировать */
+  width: auto; 
   display: flex;
   flex-direction: column;
+  text-align: left;
   h3 {
     margin-top: 0;
     color: #3498db;
@@ -19,7 +33,7 @@ export const Card = styled.div`
     margin-bottom: 10px;
   }
   p {
-    margin: 5px 0;
+    margin: 4px 0;
     line-height: 1.4;
     font-size: 0.9em;
     color: #555;
@@ -29,33 +43,21 @@ export const Card = styled.div`
   }
 `;
 
-export const CardContainer = styled.div`
-  display: flex;
-  flex-wrap: wrap;
-  justify-content: flex-start; /* Карточки будут слева */
-  gap: 10px; /* Пространство между карточками */
+// Новый экспортируемый компонент для карточек, по которым можно кликнуть
+export const ClickableCard = styled(Card)`
+  cursor: pointer;
+  transition: transform 0.2s ease-in-out, box-shadow 0.2s ease-in-out;
+  
+  &:hover {
+    transform: translateY(-3px);
+    box-shadow: 0 4px 8px rgba(0,0,0,0.15);
+  }
 `;
 
-export const ButtonGroup = styled.div`
-  margin-bottom: 20px;
-  button {
-    margin-right: 10px;
-    padding: 8px 15px;
-    border: 1px solid #3498db;
-    background-color: #fff;
-    color: #3498db;
-    border-radius: 4px;
-    cursor: pointer;
-    transition: background-color 0.2s, color 0.2s;
-    &:hover {
-      background-color: #2980b9;
-      color: #fff;
-    }
-    &.active {
-      background-color: #3498db;
-      color: #fff;
-    }
-  }
+export const CardContainer = styled.div`
+  display: flex;
+  flex-direction: column;
+  gap: 15px;
 `;
 
 export const NameList = styled.ul`

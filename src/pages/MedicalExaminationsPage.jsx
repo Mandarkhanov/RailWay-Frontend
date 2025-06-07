@@ -1,101 +1,25 @@
 import { useState, useEffect } from 'react';
-import styled from 'styled-components';
 import MedicalExaminationCard from '../components/MedicalExaminationsCard';
-
-
-const PageContainer = styled.div`
-  padding: 20px;
-  h2 {
-    color: #333;
-    border-bottom: 2px solid #3498db;
-    padding-bottom: 10px;
-  }
-`;
-
-const CodeBlock = styled.pre`
-  background-color: #282c34;
-  color: #abb2bf;
-  padding: 15px;
-  border-radius: 5px;
-  overflow-x: auto;
-  font-family: 'Courier New', Courier, monospace;
-  font-size: 0.9em;
-  white-space: pre-wrap;
-  word-wrap: break-word;
-  border: 1px solid #ddd;
-  margin-left: 0; /* Для выравнивания влево */
-  margin-right: auto;
-  text-align: left;
-`;
-
-const LoadingText = styled.p`
-  font-style: italic;
-  color: #555;
-`;
-
-const ErrorText = styled.p`
-  color: red;
-  font-weight: bold;
-`;
-
-const CardContainer = styled.div`
-  display: flex;
-  flex-wrap: wrap;
-  justify-content: flex-start;
-  gap: 10px;
-`;
-
-const ButtonGroup = styled.div`
-  margin-bottom: 20px;
-  button {
-    margin-right: 10px;
-    padding: 8px 15px;
-    border: 1px solid #3498db;
-    background-color: #fff;
-    color: #3498db;
-    border-radius: 4px;
-    cursor: pointer;
-    transition: background-color 0.2s, color 0.2s;
-    &:hover {
-      background-color: #2980b9;
-      color: #fff;
-    }
-    &.active {
-      background-color: #3498db;
-      color: #fff;
-    }
-  }
-`;
-
-const NameList = styled.ul`
-  list-style-type: none;
-  padding: 0;
-  li {
-    background-color: #f9f9f9;
-    border: 1px solid #eee;
-    padding: 8px 12px;
-    margin-bottom: 5px;
-    border-radius: 4px;
-  }
-`;
-
+import JsonModal from '../components/JsonModal';
+import FilterDropdown from '../components/FilterDropdown';
+import DetailsModal from '../components/DetailsModal'; // Импортируем модальное окно
+import { CardContainer, NameList } from '../commonStyles';
+import { PageContainer, LoadingText, ErrorText, TopBarActions, ActionButton, FilterItem } from './pageStyles';
 
 export default function MedicalExaminationsPage() {
   const [examinations, setExaminations] = useState(null);
-  // Для "имен" медосмотров, можно показывать ID + ФИО сотрудника
   const [examinationSummaries, setExaminationSummaries] = useState(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
-  const [viewMode, setViewMode] = useState('cards');
-  const [showSummariesOnly, setShowSummariesOnly] = useState(false); // Изменено для ясности
+  const [showSummariesOnly, setShowSummariesOnly] = useState(false);
+  const [isJsonModalOpen, setIsJsonModalOpen] = useState(false);
+  const [selectedExam, setSelectedExam] = useState(null); // Состояние для выбранного осмотра
 
   useEffect(() => {
     const fetchData = async () => {
       try {
         setLoading(true);
         setError(null);
-        // Для MedicalExaminations нет отдельного эндпоинта "names"
-        // Будем всегда запрашивать полные данные, а summaries генерировать на клиенте
         const response = await fetch('http://localhost:8080/medical-examinations');
         if (!response.ok) {
           throw new Error(`HTTP error! status: ${response.status}`);
@@ -108,7 +32,6 @@ export default function MedicalExaminationsPage() {
             );
             setExaminationSummaries(summaries);
         }
-
       } catch (e) {
         setError(e.message);
         console.error("Failed to fetch medical examinations:", e);
@@ -118,41 +41,80 @@ export default function MedicalExaminationsPage() {
     };
 
     fetchData();
-  }, []); // Загрузка только один раз, т.к. summaries генерируем на клиенте
+  }, []);
 
+  // Функция для получения аватара в зависимости от результата осмотра
+  const getAvatarForExam = (exam) => {
+    if (!exam) return '/src/assets/employee-placeholder.png'; // Запасной вариант
+    return exam.result 
+        ? '/src/assets/healthy-worker.png' // Путь к фото для здорового
+        : '/src/assets/sick-worker.png';      // Путь к фото для больного
+  };
 
   if (loading) return <LoadingText>Загрузка медосмотров...</LoadingText>;
   if (error) return <ErrorText>Ошибка при загрузке медосмотров: {error}</ErrorText>;
 
-  const displayedData = showSummariesOnly ? examinationSummaries : examinations;
-  const dataForJson = showSummariesOnly ? (examinations || []) : examinations; // JSON всегда показывает полные данные
-
   return (
     <PageContainer>
       <h2>Медицинские осмотры</h2>
-      <ButtonGroup>
-        <button onClick={() => setViewMode('cards')} className={viewMode === 'cards' ? 'active' : ''}>Карточки</button>
-        <button onClick={() => setViewMode('json')} className={viewMode === 'json' ? 'active' : ''}>JSON</button>
-        <button onClick={() => setShowSummariesOnly(prev => !prev)}>
-          {showSummariesOnly ? 'Показать все данные' : 'Показать только сводку'}
-        </button>
-      </ButtonGroup>
+      <TopBarActions>
+        <FilterDropdown>
+          <FilterItem>
+            <label htmlFor="summaries-filter-toggle">Показать только сводку</label>
+            <input 
+              type="checkbox" 
+              id="summaries-filter-toggle"
+              checked={showSummariesOnly}
+              onChange={() => setShowSummariesOnly(p => !p)}
+            />
+          </FilterItem>
+        </FilterDropdown>
+        <ActionButton onClick={() => setIsJsonModalOpen(true)}>JSON</ActionButton>
+      </TopBarActions>
 
-      {viewMode === 'json' && dataForJson && ( // Используем dataForJson для JSON вида
-        <CodeBlock><code>{JSON.stringify(dataForJson, null, 2)}</code></CodeBlock>
+      <JsonModal isOpen={isJsonModalOpen} onClose={() => setIsJsonModalOpen(false)}>
+        {JSON.stringify(examinations, null, 2)}
+      </JsonModal>
+
+      {/* Модальное окно для детальной информации */}
+      {selectedExam && (
+        <DetailsModal 
+          isOpen={!!selectedExam} 
+          onClose={() => setSelectedExam(null)} 
+          imageSrc={getAvatarForExam(selectedExam)} 
+          imageAspectRatio="portrait"
+        >
+          <h2>Медосмотр: {selectedExam.employee ? `${selectedExam.employee.firstName} ${selectedExam.employee.lastName}` : 'N/A'}</h2>
+          <p><strong>ID осмотра:</strong> {selectedExam.id}</p>
+          {selectedExam.employee && (
+            <>
+              <p><strong>ID сотрудника:</strong> {selectedExam.employee.id}</p>
+              <p><strong>Должность:</strong> {selectedExam.employee.position ? selectedExam.employee.position.name : 'N/A'}</p>
+            </>
+          )}
+          <p><strong>Дата осмотра:</strong> {selectedExam.examinationDate ? new Date(selectedExam.examinationDate).toLocaleDateString() : 'N/A'}</p>
+          <p><strong>Результат:</strong> {selectedExam.result ? 'Годен' : 'Не годен'}</p>
+          <p><strong>Заметки:</strong> {selectedExam.notes || 'Нет заметок'}</p>
+        </DetailsModal>
       )}
-      {viewMode === 'cards' && (
-        showSummariesOnly && examinationSummaries ? (
-          <NameList>
-            {examinationSummaries.map((summary, index) => <li key={index}>{summary}</li>)}
-          </NameList>
-        ) : examinations ? (
-          <CardContainer>
-            {examinations.map(exam => <MedicalExaminationCard key={exam.id} exam={exam} />)}
-          </CardContainer>
-        ) : null
-      )}
-      {!displayedData && !loading && <p>Нет данных для отображения.</p>}
+
+      {showSummariesOnly && examinationSummaries ? (
+        <NameList>
+          {examinationSummaries.map((summary, index) => <li key={index}>{summary}</li>)}
+        </NameList>
+      ) : examinations ? (
+        <CardContainer>
+          {examinations.map(exam => 
+            <MedicalExaminationCard 
+              key={exam.id} 
+              exam={exam} 
+              onClick={() => setSelectedExam(exam)} 
+            />
+          )}
+        </CardContainer>
+      ) : null}
+
+      {!(showSummariesOnly ? examinationSummaries : examinations) && !loading && <p>Нет данных для отображения.</p>}
     </PageContainer>
   );
 }

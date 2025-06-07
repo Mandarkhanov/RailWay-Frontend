@@ -1,12 +1,10 @@
-import React from 'react';
-import { Card } from '../commonStyles';
+import { ClickableCard } from '../commonStyles';
 
-export default function DepartmentCard({ department }) {
+export default function DepartmentCard({ department, onClick }) {
   return (
-    <Card>
+    <ClickableCard onClick={onClick}>
       <h3>{department.name}</h3>
-      <p><strong>ID:</strong> {department.id}</p>
-      <p><strong>Описание:</strong> {department.description || 'Нет описания'}</p>
-    </Card>
+      <p>{department.description || 'Нет описания'}</p>
+    </ClickableCard>
   );
 }

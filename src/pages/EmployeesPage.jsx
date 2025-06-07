@@ -1,155 +1,127 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useMemo } from 'react';
 import styled from 'styled-components';
 import EmployeeCard from '../components/EmployeeCard';
+import JsonModal from '../components/JsonModal';
+import FilterDropdown from '../components/FilterDropdown';
+import DetailsModal from '../components/DetailsModal';
+import { CardContainer, NameList } from '../commonStyles';
+import { PageContainer, LoadingText, ErrorText, TopBarActions, ActionButton, FilterItem } from './pageStyles';
 
-
-const PageContainer = styled.div`
-  padding: 20px;
-  h2 {
-    color: #333;
-    border-bottom: 2px solid #3498db;
-    padding-bottom: 10px;
-  }
-`;
-
-const CodeBlock = styled.pre`
-  background-color: #282c34;
-  color: #abb2bf;
-  padding: 15px;
-  border-radius: 5px;
-  overflow-x: auto;
-  font-family: 'Courier New', Courier, monospace;
-  font-size: 0.9em;
-  white-space: pre-wrap;
-  word-wrap: break-word;
-  border: 1px solid #ddd;
-  margin-left: 0; /* Для выравнивания влево */
-  margin-right: auto;
-  text-align: left;
-`;
-
-const LoadingText = styled.p`
-  font-style: italic;
-  color: #555;
-`;
-
-const ErrorText = styled.p`
-  color: red;
-  font-weight: bold;
-`;
-
-const CardContainer = styled.div`
+const FlexRow = styled.div`
   display: flex;
-  flex-wrap: wrap;
-  justify-content: flex-start;
-  gap: 10px;
+  flex-direction: row;
+  gap: 20px;
 `;
 
-const ButtonGroup = styled.div`
-  margin-bottom: 20px;
-  button {
-    margin-right: 10px;
-    padding: 8px 15px;
-    border: 1px solid #3498db;
-    background-color: #fff;
-    color: #3498db;
-    border-radius: 4px;
-    cursor: pointer;
-    transition: background-color 0.2s, color 0.2s;
-    &:hover {
-      background-color: #2980b9;
-      color: #fff;
-    }
-    &.active {
-      background-color: #3498db;
-      color: #fff;
-    }
-  }
-`;
-
-const NameList = styled.ul`
-  list-style-type: none;
-  padding: 0;
-  li {
-    background-color: #f9f9f9;
-    border: 1px solid #eee;
-    padding: 8px 12px;
-    margin-bottom: 5px;
-    border-radius: 4px;
-  }
-`;
-
+const getAvatarForEmployee = (employee) => {
+  if (!employee || !employee.gender) return '/src/assets/employee-placeholder.png';
+  const gender = employee.gender.toLowerCase();
+  if (gender === 'мужской' || gender === 'male' || gender === 'м') return '/src/assets/male-employee-placeholder.png';
+  if (gender === 'женский' || gender === 'female' || gender === 'ж') return '/src/assets/female-employee-placeholder.png';
+  return '/src/assets/employee-placeholder.png';
+};
 
 export default function EmployeesPage() {
   const [employees, setEmployees] = useState(null);
-  const [employeeNames, setEmployeeNames] = useState(null); // Для полных имен
+  const [employeeNames, setEmployeeNames] = useState(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
-  const [viewMode, setViewMode] = useState('cards');
   const [showNamesOnly, setShowNamesOnly] = useState(false);
+  const [isJsonModalOpen, setIsJsonModalOpen] = useState(false);
+  const [selectedItem, setSelectedItem] = useState(null);
+  const [isSortedAZ, setIsSortedAZ] = useState(false);
 
   useEffect(() => {
     const fetchData = async () => {
       try {
         setLoading(true);
         setError(null);
-        const endpoint = showNamesOnly
-          ? 'http://localhost:8080/employees/names' // Используем /names, т.к. контроллер так настроен
-          : 'http://localhost:8080/employees';
+        const endpoint = showNamesOnly ? 'http://localhost:8080/employees/names' : 'http://localhost:8080/employees';
         const response = await fetch(endpoint);
-        if (!response.ok) {
-          throw new Error(`HTTP error! status: ${response.status}`);
-        }
+        if (!response.ok) throw new Error(`HTTP error! status: ${response.status}`);
         const data = await response.json();
         if (showNamesOnly) {
           setEmployeeNames(data);
-          setEmployees(null);
         } else {
           setEmployees(data);
           setEmployeeNames(null);
         }
       } catch (e) {
         setError(e.message);
-        console.error("Failed to fetch employees:", e);
       } finally {
         setLoading(false);
       }
     };
-
     fetchData();
   }, [showNamesOnly]);
 
-  if (loading) return <LoadingText>Загрузка сотрудников...</LoadingText>;
+  useEffect(() => {
+    if (!employees) {
+      fetch('http://localhost:8080/employees').then(res => res.json()).then(setEmployees).catch(console.error);
+    }
+  }, []);
+
+  const sortedEmployees = useMemo(() => {
+    if (!employees) return null;
+    if (!isSortedAZ) return employees;
+    return [...employees].sort((a, b) => 
+      `${a.firstName} ${a.lastName}`.localeCompare(`${b.firstName} ${b.lastName}`, 'ru')
+    );
+  }, [employees, isSortedAZ]);
+
+  const sortedEmployeeNames = useMemo(() => {
+    if (!employeeNames) return null;
+    if (!isSortedAZ) return employeeNames;
+    return [...employeeNames].sort((a, b) => a.localeCompare(b, 'ru'));
+  }, [employeeNames, isSortedAZ]);
+
+  if (loading && !(showNamesOnly && employeeNames)) return <LoadingText>Загрузка сотрудников...</LoadingText>;
   if (error) return <ErrorText>Ошибка при загрузке сотрудников: {error}</ErrorText>;
-
-  const displayedData = showNamesOnly ? employeeNames : employees;
-
+  
   return (
     <PageContainer>
       <h2>Сотрудники</h2>
-      <ButtonGroup>
-        <button onClick={() => setViewMode('cards')} className={viewMode === 'cards' ? 'active' : ''}>Карточки</button>
-        <button onClick={() => setViewMode('json')} className={viewMode === 'json' ? 'active' : ''}>JSON</button>
-        <button onClick={() => setShowNamesOnly(prev => !prev)}>
-          {showNamesOnly ? 'Показать все данные' : 'Показать только ФИО'}
-        </button>
-      </ButtonGroup>
+      <TopBarActions>
+        <FilterDropdown>
+          <FilterItem>
+            <label htmlFor="names-filter-toggle">Показать только ФИО</label>
+            <input type="checkbox" id="names-filter-toggle" checked={showNamesOnly} onChange={() => setShowNamesOnly(p => !p)} />
+          </FilterItem>
+          <FilterItem>
+            <label htmlFor="sort-az-toggle">Сортировать А-Я</label>
+            <input type="checkbox" id="sort-az-toggle" checked={isSortedAZ} onChange={() => setIsSortedAZ(p => !p)} />
+          </FilterItem>
+        </FilterDropdown>
+        <ActionButton onClick={() => setIsJsonModalOpen(true)}>JSON</ActionButton>
+      </TopBarActions>
 
-      {viewMode === 'json' && displayedData && (
-        <CodeBlock><code>{JSON.stringify(displayedData, null, 2)}</code></CodeBlock>
+      <JsonModal isOpen={isJsonModalOpen} onClose={() => setIsJsonModalOpen(false)}>
+        {JSON.stringify(employees, null, 2)}
+      </JsonModal>
+      
+      {selectedItem && (
+        <DetailsModal isOpen={!!selectedItem} onClose={() => setSelectedItem(null)} imageSrc={getAvatarForEmployee(selectedItem)} imageAspectRatio="portrait">
+          <h2>{selectedItem.firstName} {selectedItem.lastName}</h2>
+          <p><strong>ID:</strong> {selectedItem.id}</p>
+          <p><strong>Должность:</strong> {selectedItem.position ? selectedItem.position.name : 'N/A'}</p>
+          <p><strong>Отдел:</strong> {selectedItem.position && selectedItem.position.department ? selectedItem.position.department.name : 'N/A'}</p>
+          <p><strong>Дата найма:</strong> {selectedItem.hireDate ? new Date(selectedItem.hireDate).toLocaleDateString() : 'N/A'}</p>
+          <p><strong>Зарплата:</strong> {selectedItem.salary !== null ? selectedItem.salary : 'N/A'} рублей</p>
+          <FlexRow>
+            <p><strong>Пол:</strong> {selectedItem.gender || 'N/A'}</p>
+            <p><strong>Дети:</strong> {selectedItem.childrenCount !== null ? selectedItem.childrenCount : 'N/A'}</p>
+          </FlexRow>
+          <p><strong>Статус:</strong> {selectedItem.isActive ? 'Активен' : 'Неактивен'}</p>
+        </DetailsModal>
       )}
-      {viewMode === 'cards' && (
-        showNamesOnly && employeeNames ? (
-          <NameList>
-            {employeeNames.map((name, index) => <li key={index}>{name}</li>)}
-          </NameList>
-        ) : employees ? (
-          <CardContainer>
-            {employees.map(emp => <EmployeeCard key={emp.id} employee={emp} />)}
-          </CardContainer>
-        ) : null
-      )}
-      {!displayedData && !loading && <p>Нет данных для отображения.</p>}
+
+      {showNamesOnly && sortedEmployeeNames ? (
+        <NameList>{sortedEmployeeNames.map((name, index) => <li key={index}>{name}</li>)}</NameList>
+      ) : sortedEmployees ? (
+        <CardContainer>{sortedEmployees.map(emp => <EmployeeCard key={emp.id} employee={emp} onClick={() => setSelectedItem(emp)} />)}</CardContainer>
+      ) : null}
+
+      {!(showNamesOnly ? sortedEmployeeNames : sortedEmployees) && !loading && <p>Нет данных для отображения.</p>}
     </PageContainer>
   );
 }

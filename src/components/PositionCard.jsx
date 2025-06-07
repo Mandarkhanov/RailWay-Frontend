@@ -1,15 +1,13 @@
-import React from 'react';
-import { Card } from '../commonStyles';
+import { ClickableCard } from '../commonStyles';
 
-export default function PositionCard({ position }) {
+export default function PositionCard({ position, onClick }) {
+  const salaryText = `Зарплата: ${position.minSalary || 'N/A'} - ${position.maxSalary || 'N/A'} рублей`;
+  
   return (
-    <Card>
+    <ClickableCard onClick={onClick}>
       <h3>{position.name}</h3>
-      <p><strong>ID:</strong> {position.id}</p>
-      <p><strong>Отдел:</strong> {position.department ? position.department.name : 'N/A'}</p>
-      <p><strong>Мин. зарплата:</strong> {position.minSalary !== null ? position.minSalary : 'N/A'}</p>
-      <p><strong>Макс. зарплата:</strong> {position.maxSalary !== null ? position.maxSalary : 'N/A'}</p>
+      <p>{salaryText}</p>
       <p><strong>Описание:</strong> {position.description || 'Нет описания'}</p>
-    </Card>
+    </ClickableCard>
   );
 }
