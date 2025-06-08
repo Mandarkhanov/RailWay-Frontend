@@ -19,7 +19,7 @@ const SidebarTitle = styled.h2`
 `;
 
 const SidebarButton = styled.button`
-  background-color: ${props => props.isActive ? '#3498db' : '#34495e'};
+  background-color: ${props => props.$isActive ? '#3498db' : '#34495e'};
   color: white;
   border: none;
   padding: 12px 18px;
@@ -31,7 +31,7 @@ const SidebarButton = styled.button`
   transition: background-color 0.2s ease-in-out;
 
   &:hover {
-    background-color: ${props => props.isActive ? '#2980b9' : '#4a6279'};
+    background-color: ${props => props.$isActive ? '#2980b9' : '#4a6279'};
   }
 `;
 
@@ -41,31 +41,31 @@ export default function SideBar({ setActiveView, activeView }) {
       <SidebarTitle>Навигация</SidebarTitle>
       <SidebarButton
         onClick={() => setActiveView('departments')}
-        isActive={activeView === 'departments'}
+        $isActive={activeView === 'departments'}
       >
         Отделы
       </SidebarButton>
       <SidebarButton
         onClick={() => setActiveView('positions')}
-        isActive={activeView === 'positions'}
+        $isActive={activeView === 'positions'}
       >
         Должности
       </SidebarButton>
       <SidebarButton
         onClick={() => setActiveView('employees')}
-        isActive={activeView === 'employees'}
+        $isActive={activeView === 'employees'}
       >
         Сотрудники
       </SidebarButton>
       <SidebarButton
         onClick={() => setActiveView('brigades')}
-        isActive={activeView === 'brigades'}
+        $isActive={activeView === 'brigades'}
       >
         Бригады
       </SidebarButton>
       <SidebarButton
         onClick={() => setActiveView('medical-examinations')}
-        isActive={activeView === 'medical-examinations'}
+        $isActive={activeView === 'medical-examinations'}
       >
         Медосмотры
       </SidebarButton>

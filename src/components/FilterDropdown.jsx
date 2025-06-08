@@ -7,32 +7,18 @@ const FilterContainer = styled.div`
 `;
 
 const FilterButton = styled.button`
-  margin-right: 10px;
-  padding: 8px 15px;
-  border: 1px solid #3498db;
-  background-color: #fff;
-  color: #3498db;
-  border-radius: 4px;
-  cursor: pointer;
-  transition: background-color 0.2s, color 0.2s;
-  &:hover {
-    background-color: #2980b9;
-    color: #fff;
-  }
+  margin-right: 10px; padding: 8px 15px; border: 1px solid #3498db;
+  background-color: #fff; color: #3498db; border-radius: 4px;
+  cursor: pointer; transition: background-color 0.2s, color 0.2s;
+  &:hover { background-color: #2980b9; color: #fff; }
 `;
 
 const DropdownContent = styled.div`
-  display: ${props => (props.isOpen ? 'block' : 'none')};
-  position: absolute;
-  background-color: #f1f1f1;
-  min-width: 240px; /* Немного увеличена ширина для новых опций */
-  box-shadow: 0px 8px 16px 0px rgba(0,0,0,0.2);
-  z-index: 1;
-  border-radius: 4px;
-  padding: 10px;
-  /* Ключевое изменение: позиционирование по правому краю */
-  right: 0;
-  left: auto;
+  display: ${props => (props.$isOpen ? 'block' : 'none')};
+  position: absolute; background-color: #f1f1f1;
+  min-width: 240px; box-shadow: 0px 8px 16px 0px rgba(0,0,0,0.2);
+  z-index: 1; border-radius: 4px; padding: 10px;
+  right: 0; left: auto;
 `;
 
 export default function FilterDropdown({ children }) {
@@ -56,7 +42,7 @@ export default function FilterDropdown({ children }) {
   return (
     <FilterContainer ref={dropdownRef}>
       <FilterButton onClick={toggleDropdown}>Фильтр</FilterButton>
-      <DropdownContent isOpen={isOpen}>
+      <DropdownContent $isOpen={isOpen}>
         {children}
       </DropdownContent>
     </FilterContainer>

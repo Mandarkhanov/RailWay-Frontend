@@ -1,17 +1,16 @@
 import styled from 'styled-components';
 
 const getCardBackground = (props) => {
-  // Исправленная проверка: теперь она сработает и для boolean `false`, и для строки "false"
-  if (props.isActive === false || props.isActive === 'false') {
-    return '#fff0f0'; // Светло-красный для неактивных сотрудников
+  if (props.$isActive === false || props.$isActive === 'false') {
+    return '#fff0f0';
   }
-  if (props.isSuccess === true) {
-    return '#f0fff0'; // Светло-зеленый для "годен"
+  if (props.$isSuccess === true) {
+    return '#f0fff0';
   }
-  if (props.isSuccess === false) {
-    return '#fff0f0'; // Светло-красный для "не годен"
+  if (props.$isSuccess === false) {
+    return '#fff0f0';
   }
-  return '#fff'; // По умолчанию
+  return '#fff';
 };
 
 export const Card = styled.div`
@@ -43,7 +42,6 @@ export const Card = styled.div`
   }
 `;
 
-// Новый экспортируемый компонент для карточек, по которым можно кликнуть
 export const ClickableCard = styled(Card)`
   cursor: pointer;
   transition: transform 0.2s ease-in-out, box-shadow 0.2s ease-in-out;
