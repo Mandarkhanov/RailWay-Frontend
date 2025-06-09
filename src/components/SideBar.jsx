@@ -61,6 +61,17 @@ export default function SideBar({ setActiveView, activeView }) {
       >
         Медосмотры
       </SidebarButton>
+      <SidebarButton onClick={() => setActiveView('trains')} $isActive={activeView === 'trains'}>Поезда</SidebarButton>
+      <SidebarButton onClick={() => setActiveView('cars')} $isActive={activeView === 'cars'}>Вагоны</SidebarButton>
+      <SidebarButton onClick={() => setActiveView('seats')} $isActive={activeView === 'seats'}>Места</SidebarButton>
+      <SidebarButton onClick={() => setActiveView('stations')} $isActive={activeView === 'stations'}>Станции</SidebarButton>
+      <SidebarButton onClick={() => setActiveView('routes')} $isActive={activeView === 'routes'}>Маршруты</SidebarButton>
+      <SidebarButton onClick={() => setActiveView('route-stops')} $isActive={activeView === 'route-stops'}>Остановки</SidebarButton>
+      <SidebarButton onClick={() => setActiveView('schedules')} $isActive={activeView === 'schedules'}>Рейсы</SidebarButton>
+      <SidebarButton onClick={() => setActiveView('tickets')} $isActive={activeView === 'tickets'}>Билеты</SidebarButton>
+      <SidebarButton onClick={() => setActiveView('passengers')} $isActive={activeView === 'passengers'}>Пассажиры</SidebarButton>
+      <SidebarButton onClick={() => setActiveView('luggage')} $isActive={activeView === 'luggage'}>Багаж</SidebarButton>
+      <SidebarButton onClick={() => setActiveView('maintenances')} $isActive={activeView === 'maintenances'}>Тех. обслуживание</SidebarButton>
       <SidebarButton
         onClick={() => setActiveView('sql-queries')}
         $isActive={activeView === 'sql-queries'}

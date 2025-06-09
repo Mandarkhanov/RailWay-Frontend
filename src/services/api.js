@@ -1,6 +1,5 @@
 const API_BASE_URL = 'http://localhost:8080';
 
-// Общая функция для выполнения запросов
 async function request(endpoint, options = {}) {
   const { body, ...customOptions } = options;
   const token = localStorage.getItem('token');
@@ -27,9 +26,8 @@ async function request(endpoint, options = {}) {
   const response = await fetch(`${API_BASE_URL}${endpoint}`, config);
 
   if (response.status === 401 || response.status === 403) {
-    // Если токен невалидный или его нет, выходим из системы
     localStorage.removeItem('token');
-    window.location.href = '/login'; // Перезагружаем на страницу входа
+    window.location.href = '/login';
     throw new Error('Unauthorized');
   }
 
@@ -38,7 +36,6 @@ async function request(endpoint, options = {}) {
     throw new Error(errorData.message || 'Что-то пошло не так');
   }
   
-  // Для запросов без тела ответа (например, DELETE)
   if (response.status === 204) {
     return;
   }
@@ -83,3 +80,75 @@ export const getMedicalExaminations = () => request('/medical-examinations');
 export const createMedicalExamination = (data) => request('/medical-examinations', { method: 'POST', body: data });
 export const updateMedicalExamination = (id, data) => request(`/medical-examinations/${id}`, { method: 'PUT', body: data });
 export const deleteMedicalExamination = (id) => request(`/medical-examinations/${id}`, { method: 'DELETE' });
+
+// Train Types (dependency for Schedule)
+export const getTrainTypes = () => request('/train-types');
+
+// Route Categories (dependency for Route)
+export const getRouteCategories = () => request('/route-categories');
+
+// Trains
+export const getTrains = () => request('/trains');
+export const createTrain = (data) => request('/trains', { method: 'POST', body: data });
+export const updateTrain = (id, data) => request(`/trains/${id}`, { method: 'PUT', body: data });
+export const deleteTrain = (id) => request(`/trains/${id}`, { method: 'DELETE' });
+
+// Cars
+export const getCars = () => request('/cars');
+export const createCar = (data) => request('/cars', { method: 'POST', body: data });
+export const updateCar = (id, data) => request(`/cars/${id}`, { method: 'PUT', body: data });
+export const deleteCar = (id) => request(`/cars/${id}`, { method: 'DELETE' });
+
+// Seats
+export const getSeats = () => request('/seats');
+export const createSeat = (data) => request('/seats', { method: 'POST', body: data });
+export const updateSeat = (id, data) => request(`/seats/${id}`, { method: 'PUT', body: data });
+export const deleteSeat = (id) => request(`/seats/${id}`, { method: 'DELETE' });
+
+// Stations
+export const getStations = () => request('/stations');
+export const createStation = (data) => request('/stations', { method: 'POST', body: data });
+export const updateStation = (id, data) => request(`/stations/${id}`, { method: 'PUT', body: data });
+export const deleteStation = (id) => request(`/stations/${id}`, { method: 'DELETE' });
+
+// Routes
+export const getRoutes = () => request('/routes');
+export const createRoute = (data) => request('/routes', { method: 'POST', body: data });
+export const updateRoute = (id, data) => request(`/routes/${id}`, { method: 'PUT', body: data });
+export const deleteRoute = (id) => request(`/routes/${id}`, { method: 'DELETE' });
+
+// RouteStops
+export const getRouteStops = () => request('/route-stops');
+export const createRouteStop = (data) => request('/route-stops', { method: 'POST', body: data });
+export const updateRouteStop = (id, data) => request(`/route-stops/${id}`, { method: 'PUT', body: data });
+export const deleteRouteStop = (id) => request(`/route-stops/${id}`, { method: 'DELETE' });
+
+// Schedules
+export const getSchedules = () => request('/schedules');
+export const createSchedule = (data) => request('/schedules', { method: 'POST', body: data });
+export const updateSchedule = (id, data) => request(`/schedules/${id}`, { method: 'PUT', body: data });
+export const deleteSchedule = (id) => request(`/schedules/${id}`, { method: 'DELETE' });
+
+// Tickets
+export const getTickets = () => request('/tickets');
+export const createTicket = (data) => request('/tickets', { method: 'POST', body: data });
+export const updateTicket = (id, data) => request(`/tickets/${id}`, { method: 'PUT', body: data });
+export const deleteTicket = (id) => request(`/tickets/${id}`, { method: 'DELETE' });
+
+// Passengers
+export const getPassengers = () => request('/passengers');
+export const createPassenger = (data) => request('/passengers', { method: 'POST', body: data });
+export const updatePassenger = (id, data) => request(`/passengers/${id}`, { method: 'PUT', body: data });
+export const deletePassenger = (id) => request(`/passengers/${id}`, { method: 'DELETE' });
+
+// Luggage
+export const getLuggage = () => request('/luggage');
+export const createLuggage = (data) => request('/luggage', { method: 'POST', body: data });
+export const updateLuggage = (id, data) => request(`/luggage/${id}`, { method: 'PUT', body: data });
+export const deleteLuggage = (id) => request(`/luggage/${id}`, { method: 'DELETE' });
+
+// Maintenances
+export const getMaintenances = () => request('/maintenances');
+export const createMaintenance = (data) => request('/maintenances', { method: 'POST', body: data });
+export const updateMaintenance = (id, data) => request(`/maintenances/${id}`, { method: 'PUT', body: data });
+export const deleteMaintenance = (id) => request(`/maintenances/${id}`, { method: 'DELETE' });

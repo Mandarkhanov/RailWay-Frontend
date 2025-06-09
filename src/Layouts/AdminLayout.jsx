@@ -9,6 +9,17 @@ import EmployeesPage from '../pages/EmployeesPage';
 import BrigadesPage from '../pages/BrigadesPage';
 import MedicalExaminationsPage from '../pages/MedicalExaminationsPage';
 import SqlQueriesPage from '../pages/SqlQueriesPage';
+import TrainsPage from '../pages/TrainsPage';
+import CarsPage from '../pages/CarsPage';
+import SeatsPage from '../pages/SeatsPage';
+import StationsPage from '../pages/StationsPage';
+import RoutesPage from '../pages/RoutesPage';
+import RouteStopsPage from '../pages/RouteStopsPage';
+import SchedulesPage from '../pages/SchedulesPage';
+import TicketsPage from '../pages/TicketsPage';
+import PassengersPage from '../pages/PassengersPage';
+import LuggagePage from '../pages/LuggagePage';
+import MaintenancesPage from '../pages/MaintenancesPage';
 
 const AppContainer = styled.div`
   display: flex;
@@ -47,6 +58,28 @@ export default function AdminLayout() {
         return <BrigadesPage />;
       case 'medical-examinations':
         return <MedicalExaminationsPage />;
+      case 'trains':
+        return <TrainsPage />;
+      case 'cars':
+        return <CarsPage />;
+      case 'seats':
+        return <SeatsPage />;
+      case 'stations':
+        return <StationsPage />;
+      case 'routes':
+        return <RoutesPage />;
+      case 'route-stops':
+        return <RouteStopsPage />;
+      case 'schedules':
+        return <SchedulesPage />;
+      case 'tickets':
+        return <TicketsPage />;
+      case 'passengers':
+        return <PassengersPage />;
+      case 'luggage':
+        return <LuggagePage />;
+      case 'maintenances':
+        return <MaintenancesPage />;
       case 'sql-queries':
         return <SqlQueriesPage />;
       default:
