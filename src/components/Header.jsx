@@ -1,4 +1,6 @@
 import styled from 'styled-components';
+import { useAuth } from '../context/AuthContext';
+import { useNavigate } from 'react-router-dom';
 
 const HeaderContainer = styled.header`
   padding: 0 2rem;
@@ -52,36 +54,40 @@ const ProfileIcon = styled.div`
   }
 `;
 
-// Временная кнопка для переключения
-const SwitchButton = styled.button`
-    background: #e9ecef;
-    border: 1px solid #ced4da;
-    color: #495057;
+const LogoutButton = styled.button`
+    background: #e74c3c;
+    border: 1px solid #c0392b;
+    color: #fff;
     padding: 6px 12px;
     border-radius: 5px;
     cursor: pointer;
-    font-size: 0.8em;
+    font-size: 0.9em;
+    font-weight: 500;
     &:hover {
-        background: #ced4da;
+        background: #c0392b;
     }
 `;
 
-export default function Header({ onLogoClick, currentView, onSwitchView }) {
-  const isUserView = currentView === 'user';
+export default function Header() {
+  const { user, logout } = useAuth();
+  const navigate = useNavigate();
+  
+  const handleLogoClick = () => {
+      if(user.role === 'ROLE_ADMIN') {
+          navigate('/');
+      } else {
+          navigate('/user');
+      }
+  };
 
   return (
     <HeaderContainer>
-      <LogoButton onClick={onLogoClick}>RailWay</LogoButton>
+      <LogoButton onClick={handleLogoClick}>RailWay</LogoButton>
       <ProfileContainer>
-        {/* Кнопка для переключения на страницу входа */}
-        <SwitchButton onClick={() => onSwitchView('login')}>
-          Войти
-        </SwitchButton>
-        {/* Кнопка для переключения между админкой и пользовательским видом */}
-        <SwitchButton onClick={() => onSwitchView(isUserView ? 'admin' : 'user')}>
-          {isUserView ? 'Вид админа' : 'Вид юзера'}
-        </SwitchButton>
-        <ProfileIcon>U</ProfileIcon>
+        <LogoutButton onClick={logout}>
+          Выйти
+        </LogoutButton>
+        <ProfileIcon>{user?.email?.[0]?.toUpperCase() || 'U'}</ProfileIcon>
       </ProfileContainer>
     </HeaderContainer>
   );

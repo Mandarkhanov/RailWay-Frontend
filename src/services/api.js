@@ -1,8 +1,15 @@
 const API_BASE_URL = 'http://localhost:8080';
 
+// Общая функция для выполнения запросов
 async function request(endpoint, options = {}) {
   const { body, ...customOptions } = options;
+  const token = localStorage.getItem('token');
+  
   const headers = { 'Content-Type': 'application/json' };
+
+  if (token) {
+    headers['Authorization'] = `Bearer ${token}`;
+  }
   
   const config = {
     method: body ? 'POST' : 'GET',
@@ -19,17 +26,29 @@ async function request(endpoint, options = {}) {
 
   const response = await fetch(`${API_BASE_URL}${endpoint}`, config);
 
+  if (response.status === 401 || response.status === 403) {
+    // Если токен невалидный или его нет, выходим из системы
+    localStorage.removeItem('token');
+    window.location.href = '/login'; // Перезагружаем на страницу входа
+    throw new Error('Unauthorized');
+  }
+
   if (!response.ok) {
     const errorData = await response.json().catch(() => ({ message: response.statusText }));
     throw new Error(errorData.message || 'Что-то пошло не так');
   }
   
+  // Для запросов без тела ответа (например, DELETE)
   if (response.status === 204) {
     return;
   }
 
   return response.json();
 }
+
+// Auth
+export const login = (credentials) => request('/api/auth/login', { method: 'POST', body: credentials });
+export const register = (userData) => request('/api/auth/register', { method: 'POST', body: userData });
 
 // Departments
 export const getDepartments = () => request('/departments');

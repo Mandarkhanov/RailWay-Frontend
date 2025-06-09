@@ -2,7 +2,7 @@ import { useState } from 'react';
 import styled from 'styled-components';
 
 import Header from '../components/Header';
-import UserSideBar from '../components/UserSideBar'; // Новый компонент
+import UserSideBar from '../components/UserSideBar';
 import { PageContainer, PageHeader } from '../pages/pageStyles';
 
 const AppContainer = styled.div`
@@ -25,7 +25,6 @@ const MainContent = styled.main`
   padding: 2rem;
 `;
 
-// Страницы-заглушки
 const PlaceholderPage = ({ title }) => (
     <PageContainer>
         <PageHeader><h2>{title}</h2></PageHeader>
@@ -35,7 +34,7 @@ const PlaceholderPage = ({ title }) => (
     </PageContainer>
 );
 
-export default function UserLayout({ currentView, onSwitchView }) {
+export default function UserLayout() {
   const [activeView, setActiveView] = useState('tickets');
 
   const renderView = () => {
@@ -51,7 +50,7 @@ export default function UserLayout({ currentView, onSwitchView }) {
 
   return (
     <AppContainer>
-      <Header onLogoClick={() => setActiveView('tickets')} currentView={currentView} onSwitchView={onSwitchView} />
+      <Header />
       <ContentContainer>
         <UserSideBar setActiveView={setActiveView} activeView={activeView} />
         <MainContent>

@@ -30,12 +30,8 @@ const MainContent = styled.main`
   padding: 2rem;
 `;
 
-export default function AdminLayout({ currentView, onSwitchView }) {
+export default function AdminLayout() {
   const [activeView, setActiveView] = useState('home');
-
-  const showHomePage = () => {
-    setActiveView('home');
-  };
 
   const renderView = () => {
     switch (activeView) {
@@ -60,7 +56,7 @@ export default function AdminLayout({ currentView, onSwitchView }) {
 
   return (
     <AppContainer>
-      <Header onLogoClick={showHomePage} currentView={currentView} onSwitchView={onSwitchView} />
+      <Header />
       <ContentContainer>
         <SideBar setActiveView={setActiveView} activeView={activeView} />
         <MainContent>

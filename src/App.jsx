@@ -1,26 +1,38 @@
-import { useState } from 'react';
+import { Routes, Route, Navigate } from 'react-router-dom';
 import AdminLayout from './layouts/AdminLayout';
 import UserLayout from './layouts/UserLayout';
 import LoginPage from './pages/LoginPage';
 import RegistrationPage from './pages/RegistrationPage';
+import ProtectedRoute from './components/ProtectedRoute';
 
 export default function App() {
-  // 'admin', 'user', 'login', 'register'
-  const [currentView, setCurrentView] = useState('admin'); 
+  return (
+    <Routes>
+      <Route path="/login" element={<LoginPage />} />
+      <Route path="/register" element={<RegistrationPage />} />
 
-  const handleSwitchView = (view) => {
-    setCurrentView(view);
-  };
-
-  switch (currentView) {
-    case 'user':
-      return <UserLayout currentView={currentView} onSwitchView={handleSwitchView} />;
-    case 'login':
-      return <LoginPage />;
-    case 'register':
-      return <RegistrationPage />;
-    case 'admin':
-    default:
-      return <AdminLayout currentView={currentView} onSwitchView={handleSwitchView} />;
-  }
+      {/* Защищенный роут для админа */}
+      <Route 
+        path="/" 
+        element={
+          <ProtectedRoute adminOnly={true}>
+            <AdminLayout />
+          </ProtectedRoute>
+        } 
+      />
+      
+      {/* Защищенный роут для обычного пользователя */}
+      <Route
+        path="/user"
+        element={
+          <ProtectedRoute>
+            <UserLayout />
+          </ProtectedRoute>
+        }
+      />
+      
+      {/* Если ни один роут не подошел, перенаправляем на главную */}
+      <Route path="*" element={<Navigate to="/" />} />
+    </Routes>
+  );
 }
