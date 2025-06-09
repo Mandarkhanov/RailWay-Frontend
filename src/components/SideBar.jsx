@@ -1,44 +1,36 @@
 import styled from 'styled-components';
 
 const SidebarContainer = styled.aside`
-  width: 220px;
-  background-color: #2c3e50; /* A darker sidebar color */
-  color: white;
-  padding: 20px;
+  width: 200px;
+  background-color: transparent;
+  color: #555;
+  padding: 2rem 20px; 
   display: flex;
   flex-direction: column;
-  flex-shrink: 0; /* Prevent sidebar from shrinking */
-`;
-
-const SidebarTitle = styled.h2`
-  margin-top: 0;
-  margin-bottom: 20px;
-  font-size: 1.5em;
-  border-bottom: 1px solid #46627f;
-  padding-bottom: 10px;
+  flex-shrink: 0;
 `;
 
 const SidebarButton = styled.button`
-  background-color: ${props => props.$isActive ? '#3498db' : '#34495e'};
-  color: white;
+  background-color: ${props => props.$isActive ? '#e6f4ff' : 'transparent'};
+  color: ${props => props.$isActive ? '#3498db' : '#555'};
   border: none;
-  padding: 12px 18px;
-  margin-bottom: 10px;
+  padding: 10px 15px;
+  margin-bottom: 8px;
   text-align: left;
   cursor: pointer;
-  border-radius: 5px;
-  font-size: 1em;
-  transition: background-color 0.2s ease-in-out;
+  border-radius: 8px;
+  font-size: 0.9em;
+  font-weight: ${props => props.$isActive ? '600' : '400'};
+  transition: background-color 0.2s ease-in-out, color 0.2s ease-in-out;
 
   &:hover {
-    background-color: ${props => props.$isActive ? '#2980b9' : '#4a6279'};
+    background-color: ${props => props.$isActive ? '#d1e9ff' : '#e9ecef'};
   }
 `;
 
 export default function SideBar({ setActiveView, activeView }) {
   return (
     <SidebarContainer>
-      <SidebarTitle>Навигация</SidebarTitle>
       <SidebarButton
         onClick={() => setActiveView('departments')}
         $isActive={activeView === 'departments'}
@@ -68,6 +60,12 @@ export default function SideBar({ setActiveView, activeView }) {
         $isActive={activeView === 'medical-examinations'}
       >
         Медосмотры
+      </SidebarButton>
+      <SidebarButton
+        onClick={() => setActiveView('sql-queries')}
+        $isActive={activeView === 'sql-queries'}
+      >
+        SQL запросы
       </SidebarButton>
     </SidebarContainer>
   );

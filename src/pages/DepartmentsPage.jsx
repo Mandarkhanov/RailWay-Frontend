@@ -9,7 +9,7 @@ import ConfirmationModal from '../components/ConfirmationModal';
 import DepartmentForm from '../forms/DepartmentForm';
 import ModalFooter from '../components/ModalFooter';
 import { CardContainer, NameList } from '../commonStyles';
-import { PageContainer, LoadingText, ErrorText, TopBarActions, ActionButton, FilterItem } from './pageStyles';
+import { PageContainer, LoadingText, ErrorText, TopBarActions, ActionButton, FilterItem, PageHeader } from './pageStyles';
 
 export default function DepartmentsPage() {
   const [departments, setDepartments] = useState([]);
@@ -25,7 +25,8 @@ export default function DepartmentsPage() {
   const [itemToDelete, setItemToDelete] = useState(null);
   const [isCreating, setIsCreating] = useState(false);
 
-  const [isJsonModalOpen, setIsJsonModalOpen] = useState(false);
+  const [isListJsonModalOpen, setIsListJsonModalOpen] = useState(false);
+  const [isItemJsonModalOpen, setIsItemJsonModalOpen] = useState(false);
   const [isFormModalOpen, setIsFormModalOpen] = useState(false);
   const [isConfirmModalOpen, setIsConfirmModalOpen] = useState(false);
   const [confirmConfig, setConfirmConfig] = useState({});
@@ -137,11 +138,17 @@ export default function DepartmentsPage() {
     setItemToEdit(null);
     setItemToDelete(null);
     setIsCreating(false);
+    setIsItemJsonModalOpen(false);
+  };
+
+  const openItemJsonModal = () => {
+    setIsItemJsonModalOpen(true);
   };
 
   const detailModalActions = selectedItem ? [
-    { label: 'Удалить', onClick: () => handleDelete(selectedItem), type: 'danger' },
     { label: 'Изменить', onClick: () => openEditModal(selectedItem), type: 'primary' },
+    { label: 'Удалить', onClick: () => handleDelete(selectedItem), type: 'danger' },
+    { label: 'JSON', onClick: openItemJsonModal, type: 'secondary' },
   ] : [];
 
   const sortedDepartments = useMemo(() => {
@@ -159,24 +166,30 @@ export default function DepartmentsPage() {
 
   return (
     <PageContainer>
-      <h2>Отделы</h2>
-      <TopBarActions>
-        <ActionButton onClick={openCreateModal}>Создать</ActionButton>
-        <FilterDropdown>
-          <FilterItem>
-            <label>Показать только названия</label>
-            <input type="checkbox" checked={showNamesOnly} onChange={() => setShowNamesOnly(p => !p)} />
-          </FilterItem>
-          <FilterItem>
-            <label>Сортировать А-Я</label>
-            <input type="checkbox" checked={isSortedAZ} onChange={() => setIsSortedAZ(p => !p)} />
-          </FilterItem>
-        </FilterDropdown>
-        <ActionButton onClick={() => setIsJsonModalOpen(true)}>JSON</ActionButton>
-      </TopBarActions>
+      <PageHeader>
+        <h2>Отделы</h2>
+        <TopBarActions>
+          <ActionButton onClick={openCreateModal}>Создать</ActionButton>
+          <FilterDropdown>
+            <FilterItem>
+              <label>Показать только названия</label>
+              <input type="checkbox" checked={showNamesOnly} onChange={() => setShowNamesOnly(p => !p)} />
+            </FilterItem>
+            <FilterItem>
+              <label>Сортировать А-Я</label>
+              <input type="checkbox" checked={isSortedAZ} onChange={() => setIsSortedAZ(p => !p)} />
+            </FilterItem>
+          </FilterDropdown>
+          <ActionButton onClick={() => setIsListJsonModalOpen(true)}>JSON</ActionButton>
+        </TopBarActions>
+      </PageHeader>
 
-      <JsonModal isOpen={isJsonModalOpen} onClose={() => setIsJsonModalOpen(false)}>
+      <JsonModal isOpen={isListJsonModalOpen} onClose={() => setIsListJsonModalOpen(false)}>
         {JSON.stringify(departments, null, 2)}
+      </JsonModal>
+
+      <JsonModal isOpen={isItemJsonModalOpen} onClose={() => setIsItemJsonModalOpen(false)}>
+        {selectedItem ? JSON.stringify(selectedItem, null, 2) : ''}
       </JsonModal>
 
       <DetailsModal isOpen={!!selectedItem} onClose={closeModals} imageSrc="/src/assets/department-placeholder.png" imageAspectRatio="16:9" footer={<ModalFooter actions={detailModalActions} />}>

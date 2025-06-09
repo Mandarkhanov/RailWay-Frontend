@@ -11,7 +11,7 @@ const ModalBackdrop = styled.div`
   display: flex;
   justify-content: center;
   align-items: center;
-  z-index: 1000;
+  z-index: 1040;
 `;
 
 const ModalContent = styled.div`
@@ -49,7 +49,7 @@ const CopyButton = styled.button`
 `;
 
 const CopyConfirmation = styled.span`
-  color: #4CAF50; /* Зеленый цвет для подтверждения */
+  color: #4CAF50;
   margin: 0 15px;
   font-style: italic;
   transition: opacity 0.3s ease-in-out;
@@ -79,7 +79,7 @@ const CodeBlock = styled.pre`
   white-space: pre-wrap;
   word-wrap: break-word;
   margin: 0;
-  background-color: #1e1e1e; /* Чуть темнее фон для самого кода */
+  background-color: #1e1e1e;
   border-radius: 5px;
   text-align: left;
 `;
@@ -88,18 +88,14 @@ export default function JsonModal({ isOpen, onClose, children }) {
   const [isCopied, setIsCopied] = useState(false);
 
   const handleCopy = () => {
-    // navigator.clipboard.writeText() возвращает Promise
     navigator.clipboard.writeText(children).then(
       () => {
-        // Показываем сообщение об успехе
         setIsCopied(true);
-        // Через 2 секунды скрываем его
         setTimeout(() => {
           setIsCopied(false);
         }, 2000);
       },
       (err) => {
-        // На случай, если копирование не удалось (например, из-за настроек браузера)
         console.error('Ошибка: не удалось скопировать текст: ', err);
       }
     );

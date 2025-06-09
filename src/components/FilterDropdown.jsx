@@ -7,7 +7,8 @@ const FilterContainer = styled.div`
 `;
 
 const FilterButton = styled.button`
-  margin-right: 10px; padding: 8px 15px; border: 1px solid #3498db;
+  padding: 8px 15px;
+  border: 1px solid #3498db;
   background-color: #fff; color: #3498db; border-radius: 4px;
   cursor: pointer; transition: background-color 0.2s, color 0.2s;
   &:hover { background-color: #2980b9; color: #fff; }

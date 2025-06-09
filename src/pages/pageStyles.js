@@ -1,13 +1,27 @@
 import styled from 'styled-components';
 
-export const PageContainer = styled.div`
-  /* padding: 20px; - Этот отступ теперь в MainContent в AdminLayout.jsx */
+export const PageHeader = styled.div`
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 1.5rem;
+  padding-bottom: 1rem;
+
   h2 {
-    color: #333;
-    border-bottom: 2px solid #3498db;
-    padding-bottom: 10px;
-    margin-top: 0; /* Убираем верхний отступ у заголовка */
+    margin: 0;
+    padding: 0;
+    border: none;
   }
+`;
+
+export const PageContainer = styled.div`
+  background-color: #ffffff;
+  border-radius: 16px;
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.08);
+  padding: 2rem;
+  box-sizing: border-box;
+  display: flex;
+  flex-direction: column;
 `;
 
 export const LoadingText = styled.p`
@@ -21,14 +35,12 @@ export const ErrorText = styled.p`
 `;
 
 export const TopBarActions = styled.div`
-  margin-bottom: 20px;
   display: flex;
-  justify-content: flex-end; /* Выравнивание кнопок по правому краю */
   align-items: center;
+  gap: 10px;
 `;
 
 export const ActionButton = styled.button`
-  margin-left: 10px; /* Отступ слева, т.к. кнопки справа */
   padding: 8px 15px;
   border: 1px solid #3498db;
   background-color: #fff;

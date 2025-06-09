@@ -1,6 +1,5 @@
 import { useState } from 'react';
 import styled from 'styled-components';
-
 import Header from '../components/Header';
 import SideBar from '../components/SideBar';
 import HomePage from '../pages/HomePage';
@@ -9,12 +8,14 @@ import PositionsPage from '../pages/PositionsPage';
 import EmployeesPage from '../pages/EmployeesPage';
 import BrigadesPage from '../pages/BrigadesPage';
 import MedicalExaminationsPage from '../pages/MedicalExaminationsPage';
+import SqlQueriesPage from '../pages/SqlQueriesPage';
 
 const AppContainer = styled.div`
   display: flex;
   flex-direction: column;
   height: 100vh;
   font-family: system-ui, Avenir, Helvetica, Arial, sans-serif;
+  background-color: #f0f2f5;
 `;
 
 const ContentContainer = styled.div`
@@ -25,14 +26,11 @@ const ContentContainer = styled.div`
 
 const MainContent = styled.main`
   flex-grow: 1;
-  background-color: #f0f2f5;
-  color: #333;
   overflow-y: auto; 
-  /* Добавим padding, так как он был в PageContainer */
-  padding: 20px; 
+  padding: 2rem;
 `;
 
-export default function AdminLayout() {
+export default function AdminLayout({ currentView, onSwitchView }) {
   const [activeView, setActiveView] = useState('home');
 
   const showHomePage = () => {
@@ -53,6 +51,8 @@ export default function AdminLayout() {
         return <BrigadesPage />;
       case 'medical-examinations':
         return <MedicalExaminationsPage />;
+      case 'sql-queries':
+        return <SqlQueriesPage />;
       default:
         return <HomePage />;
     }
@@ -60,9 +60,8 @@ export default function AdminLayout() {
 
   return (
     <AppContainer>
-      <Header onLogoClick={showHomePage} />
+      <Header onLogoClick={showHomePage} currentView={currentView} onSwitchView={onSwitchView} />
       <ContentContainer>
-        {/* SideBar теперь отображается всегда */}
         <SideBar setActiveView={setActiveView} activeView={activeView} />
         <MainContent>
           {renderView()}

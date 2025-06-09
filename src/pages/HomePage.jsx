@@ -1,11 +1,13 @@
 import styled from 'styled-components';
+import { PageContainer } from './pageStyles';
 
-const HomePageContainer = styled.div`
+const CenteredContent = styled.div`
   display: flex;
   justify-content: center;
   align-items: center;
   height: 100%;
   width: 100%;
+  flex-grow: 1; /* Чтобы он занял все доступное место в PageContainer */
 `;
 
 const Title = styled.h1`
@@ -17,8 +19,10 @@ const Title = styled.h1`
 
 export default function HomePage() {
   return (
-    <HomePageContainer>
-      <Title>Hello from Danil</Title>
-    </HomePageContainer>
+    <PageContainer>
+      <CenteredContent>
+        <Title>Hello from Danil</Title>
+      </CenteredContent>
+    </PageContainer>
   );
 }

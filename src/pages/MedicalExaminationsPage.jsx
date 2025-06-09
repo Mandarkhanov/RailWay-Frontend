@@ -9,7 +9,7 @@ import ConfirmationModal from '../components/ConfirmationModal';
 import MedicalExaminationForm from '../forms/MedicalExaminationForm';
 import ModalFooter from '../components/ModalFooter';
 import { CardContainer, NameList } from '../commonStyles';
-import { PageContainer, LoadingText, ErrorText, TopBarActions, ActionButton, FilterItem } from './pageStyles';
+import { PageContainer, LoadingText, ErrorText, TopBarActions, ActionButton, FilterItem, PageHeader } from './pageStyles';
 
 export default function MedicalExaminationsPage() {
   const [examinations, setExaminations] = useState([]);
@@ -24,7 +24,8 @@ export default function MedicalExaminationsPage() {
   const [itemToDelete, setItemToDelete] = useState(null);
   const [isCreating, setIsCreating] = useState(false);
 
-  const [isJsonModalOpen, setIsJsonModalOpen] = useState(false);
+  const [isListJsonModalOpen, setIsListJsonModalOpen] = useState(false);
+  const [isItemJsonModalOpen, setIsItemJsonModalOpen] = useState(false);
   const [isFormModalOpen, setIsFormModalOpen] = useState(false);
   const [isConfirmModalOpen, setIsConfirmModalOpen] = useState(false);
   const [confirmConfig, setConfirmConfig] = useState({});
@@ -137,11 +138,17 @@ export default function MedicalExaminationsPage() {
     setItemToEdit(null);
     setItemToDelete(null);
     setIsCreating(false);
+    setIsItemJsonModalOpen(false);
+  };
+
+  const openItemJsonModal = () => {
+    setIsItemJsonModalOpen(true);
   };
 
   const detailModalActions = selectedExam ? [
-    { label: 'Удалить', onClick: () => handleDelete(selectedExam), type: 'danger' },
     { label: 'Изменить', onClick: () => openEditModal(selectedExam), type: 'primary' },
+    { label: 'Удалить', onClick: () => handleDelete(selectedExam), type: 'danger' },
+    { label: 'JSON', onClick: openItemJsonModal, type: 'secondary' },
   ] : [];
 
   const getAvatarForExam = (exam) => {
@@ -154,24 +161,30 @@ export default function MedicalExaminationsPage() {
 
   return (
     <PageContainer>
-      <h2>Медицинские осмотры</h2>
-      <TopBarActions>
-        <ActionButton onClick={openCreateModal}>Создать</ActionButton>
-        <FilterDropdown>
-          <FilterItem>
-            <label>Показать только сводку</label>
-            <input
-              type="checkbox"
-              checked={showSummariesOnly}
-              onChange={() => setShowSummariesOnly(p => !p)}
-            />
-          </FilterItem>
-        </FilterDropdown>
-        <ActionButton onClick={() => setIsJsonModalOpen(true)}>JSON</ActionButton>
-      </TopBarActions>
+      <PageHeader>
+        <h2>Медицинские осмотры</h2>
+        <TopBarActions>
+          <ActionButton onClick={openCreateModal}>Создать</ActionButton>
+          <FilterDropdown>
+            <FilterItem>
+              <label>Показать только сводку</label>
+              <input
+                type="checkbox"
+                checked={showSummariesOnly}
+                onChange={() => setShowSummariesOnly(p => !p)}
+              />
+            </FilterItem>
+          </FilterDropdown>
+          <ActionButton onClick={() => setIsListJsonModalOpen(true)}>JSON</ActionButton>
+        </TopBarActions>
+      </PageHeader>
 
-      <JsonModal isOpen={isJsonModalOpen} onClose={() => setIsJsonModalOpen(false)}>
+      <JsonModal isOpen={isListJsonModalOpen} onClose={() => setIsListJsonModalOpen(false)}>
         {JSON.stringify(examinations, null, 2)}
+      </JsonModal>
+
+      <JsonModal isOpen={isItemJsonModalOpen} onClose={() => setIsItemJsonModalOpen(false)}>
+        {selectedExam ? JSON.stringify(selectedExam, null, 2) : ''}
       </JsonModal>
       
       <DetailsModal isOpen={!!selectedExam} onClose={closeModals} imageSrc={getAvatarForExam(selectedExam)} imageAspectRatio="portrait" footer={<ModalFooter actions={detailModalActions} />}>
