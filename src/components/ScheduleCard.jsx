@@ -7,6 +7,8 @@ export default function ScheduleCard({ schedule, onClick }) {
       <p><strong>Маршрут:</strong> {schedule.route?.name || 'N/A'}</p>
       <p><strong>Отправление:</strong> {new Date(schedule.departureTime).toLocaleString()}</p>
       <p><strong>Статус:</strong> {schedule.trainStatus}</p>
+      <p><strong>Билеты (оплачено/всего):</strong> {schedule.paidTickets || 0} / {schedule.totalTickets || 0}</p>
+      <p><strong>Возвращено:</strong> {schedule.returnedTickets || 0}</p>
     </ClickableCard>
   );
 }

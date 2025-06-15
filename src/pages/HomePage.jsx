@@ -21,7 +21,7 @@ export default function HomePage() {
   return (
     <PageContainer>
       <CenteredContent>
-        <Title>Hello from Danil</Title>
+        <Title>Hello Adminchik</Title>
       </CenteredContent>
     </PageContainer>
   );

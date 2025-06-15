@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useCallback } from 'react';
 import * as api from '../services/api';
 import MaintenanceCard from '../components/MaintenanceCard';
 import JsonModal from '../components/JsonModal';
@@ -7,26 +7,44 @@ import FormModal from '../components/FormModal';
 import ConfirmationModal from '../components/ConfirmationModal';
 import MaintenanceForm from '../forms/MaintenanceForm';
 import ModalFooter from '../components/ModalFooter';
+import FilterDropdown from '../components/FilterDropdown';
 import { CardContainer } from '../commonStyles';
-import { PageContainer, LoadingText, ErrorText, TopBarActions, ActionButton, PageHeader } from './pageStyles';
+import { PageContainer, LoadingText, ErrorText, TopBarActions, ActionButton, PageHeader, FilterItem } from './pageStyles';
+import { Label, Input, Select } from '../forms/formStyles';
 
-// Хелпер для выбора изображения по статусу ТО
 const getAvatarForMaintenance = (maintenance) => {
     if (!maintenance) return '/src/assets/maintenance-placeholder.png';
-    
-    if (!maintenance.endDate) {
-      return '/src/assets/maintenance-inprogress.png'; // ТО в процессе
-    }
-    if (maintenance.isRepair) {
-      return '/src/assets/maintenance-completed-repair.png'; // Завершенный ремонт
-    }
-    return '/src/assets/maintenance-completed-planned.png'; // Завершенное плановое ТО
+    if (!maintenance.endDate) return '/src/assets/maintenance-inprogress.png';
+    if (maintenance.isRepair) return '/src/assets/maintenance-completed-repair.png';
+    return '/src/assets/maintenance-completed-planned.png';
 };
+
+const MaintenanceFilters = ({ filters, onFilterChange, trains }) => (
+    <FilterDropdown>
+        <FilterItem>
+            <Label>Поезд</Label>
+            <Select name="trainId" value={filters.trainId || ''} onChange={onFilterChange}>
+                <option value="">Все поезда</option>
+                {trains.map(t => <option key={t.id} value={t.id}>{t.model}</option>)}
+            </Select>
+        </FilterItem>
+        <FilterItem>
+            <Label>Период ТО (от и до)</Label>
+            <div style={{display: 'flex', flexDirection: 'column', gap: '5px'}}>
+                <Input type="datetime-local" name="dateFrom" value={filters.dateFrom || ''} onChange={onFilterChange} />
+                <Input type="datetime-local" name="dateTo" value={filters.dateTo || ''} onChange={onFilterChange} />
+            </div>
+        </FilterItem>
+    </FilterDropdown>
+);
 
 export default function MaintenancesPage() {
   const [maintenances, setMaintenances] = useState([]);
+  const [trains, setTrains] = useState([]);
+  const [maintenanceCount, setMaintenanceCount] = useState(0);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
+  const [filters, setFilters] = useState({});
   
   const [selectedItem, setSelectedItem] = useState(null);
   const [isCreating, setIsCreating] = useState(false);
@@ -38,20 +56,34 @@ export default function MaintenancesPage() {
   const [confirmConfig, setConfirmConfig] = useState({});
 
   useEffect(() => {
-    fetchData();
+    api.getTrains().then(setTrains).catch(console.error);
   }, []);
 
-  const fetchData = async () => {
+  const fetchData = useCallback(async () => {
+    setLoading(true);
+    setError(null);
     try {
-      setLoading(true);
-      setError(null);
-      const data = await api.getMaintenances();
+      const activeFilters = Object.fromEntries(Object.entries(filters).filter(([, value]) => value));
+      const [data, countData] = await Promise.all([
+        api.getMaintenances(activeFilters),
+        api.getMaintenanceCount(activeFilters)
+      ]);
       setMaintenances(data);
+      setMaintenanceCount(countData.count);
     } catch (e) {
       setError(e.message);
     } finally {
       setLoading(false);
     }
+  }, [filters]);
+
+  useEffect(() => {
+      fetchData();
+  }, [fetchData]);
+
+  const handleFilterChange = (e) => {
+    const { name, value } = e.target;
+    setFilters(prev => ({ ...prev, [name]: value }));
   };
 
   const handleSave = (formData) => {
@@ -61,7 +93,7 @@ export default function MaintenancesPage() {
   const handleCreate = (formData) => {
     setConfirmConfig({
       title: 'Подтвердите создание',
-      message: `Создать новую запись о ТО для поезда?`,
+      message: `Создать новую запись о ТО?`,
       onConfirm: () => confirmCreate(formData),
     });
     setIsConfirmModalOpen(true);
@@ -145,18 +177,24 @@ export default function MaintenancesPage() {
     { label: 'JSON', onClick: openItemJsonModal, type: 'secondary' },
   ] : [];
 
-  if (loading) return <LoadingText>Загрузка данных о ТО...</LoadingText>;
-  if (error) return <ErrorText>Ошибка при загрузке: {error}</ErrorText>;
-
   return (
     <PageContainer>
       <PageHeader>
-        <h2>Техническое обслуживание</h2>
+        <h2>Техническое обслуживание ({loading ? '...' : maintenanceCount})</h2>
         <TopBarActions>
           <ActionButton onClick={openCreateModal}>Создать</ActionButton>
+          <MaintenanceFilters filters={filters} onFilterChange={handleFilterChange} trains={trains} />
           <ActionButton onClick={() => setIsListJsonModalOpen(true)}>JSON</ActionButton>
         </TopBarActions>
       </PageHeader>
+
+      {loading ? (
+        <LoadingText>Загрузка данных о ТО...</LoadingText>
+      ) : error ? (
+        <ErrorText>Ошибка при загрузке: {error}</ErrorText>
+      ) : (
+        <CardContainer>{maintenances.map(item => <MaintenanceCard key={item.id} maintenance={item} onClick={() => setSelectedItem(item)} />)}</CardContainer>
+      )}
 
       <JsonModal isOpen={isListJsonModalOpen} onClose={() => setIsListJsonModalOpen(false)}>
         {JSON.stringify(maintenances, null, 2)}
@@ -192,7 +230,6 @@ export default function MaintenancesPage() {
       
       <ConfirmationModal isOpen={isConfirmModalOpen} onClose={closeModals} {...confirmConfig} />
 
-      <CardContainer>{maintenances.map(item => <MaintenanceCard key={item.id} maintenance={item} onClick={() => setSelectedItem(item)} />)}</CardContainer>
     </PageContainer>
   );
 }

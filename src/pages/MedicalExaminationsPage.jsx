@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useCallback, useMemo } from 'react';
 import * as api from '../services/api';
 import MedicalExaminationCard from '../components/MedicalExaminationsCard';
 import JsonModal from '../components/JsonModal';
@@ -8,20 +8,69 @@ import FormModal from '../components/FormModal';
 import ConfirmationModal from '../components/ConfirmationModal';
 import MedicalExaminationForm from '../forms/MedicalExaminationForm';
 import ModalFooter from '../components/ModalFooter';
-import { CardContainer, NameList } from '../commonStyles';
+import { CardContainer } from '../commonStyles';
 import { PageContainer, LoadingText, ErrorText, TopBarActions, ActionButton, FilterItem, PageHeader } from './pageStyles';
+import { Label, Input, Select } from '../forms/formStyles';
+
+const MedicalExaminationFilters = ({ filters, onFilterChange, positions }) => (
+    <FilterDropdown>
+        <FilterItem>
+            <Label>Должность</Label>
+            <Select name="positionId" value={filters.positionId || ''} onChange={onFilterChange}>
+                <option value="">Все</option>
+                {positions.map(p => <option key={p.id} value={p.id}>{p.name}</option>)}
+            </Select>
+        </FilterItem>
+        <FilterItem>
+            <Label>Результат</Label>
+            <Select name="result" value={filters.result ?? ''} onChange={onFilterChange}>
+                <option value="">Любой</option>
+                <option value="true">Годен</option>
+                <option value="false">Не годен</option>
+            </Select>
+        </FilterItem>
+        <FilterItem>
+            <Label>Год</Label>
+            <Input type="number" name="year" value={filters.year || ''} onChange={onFilterChange} placeholder="Напр. 2023" />
+        </FilterItem>
+        <FilterItem>
+            <Label>Пол</Label>
+            <Select name="gender" value={filters.gender || ''} onChange={onFilterChange}>
+                <option value="">Любой</option>
+                <option value="М">М</option>
+                <option value="Ж">Ж</option>
+            </Select>
+        </FilterItem>
+        <FilterItem>
+            <Label>Возраст (от и до)</Label>
+            <div style={{display: 'flex', gap: '5px'}}>
+                <Input style={{width: '60px'}} type="number" name="minAge" value={filters.minAge || ''} onChange={onFilterChange} placeholder="20" />
+                <Input style={{width: '60px'}} type="number" name="maxAge" value={filters.maxAge || ''} onChange={onFilterChange} placeholder="50" />
+            </div>
+        </FilterItem>
+        <FilterItem>
+            <Label>Зарплата (от и до)</Label>
+            <div style={{display: 'flex', gap: '5px'}}>
+                <Input style={{width: '80px'}} type="number" name="minSalary" value={filters.minSalary || ''} onChange={onFilterChange} placeholder="50000" />
+                <Input style={{width: '80px'}} type="number" name="maxSalary" value={filters.maxSalary || ''} onChange={onFilterChange} placeholder="100000" />
+            </div>
+        </FilterItem>
+    </FilterDropdown>
+);
+
 
 export default function MedicalExaminationsPage() {
   const [examinations, setExaminations] = useState([]);
-  const [examinationSummaries, setExaminationSummaries] = useState([]);
+  const [examCount, setExamCount] = useState(0);
+  const [positions, setPositions] = useState([]);
+
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
 
-  const [showSummariesOnly, setShowSummariesOnly] = useState(false);
+  const [filters, setFilters] = useState({});
   
   const [selectedExam, setSelectedExam] = useState(null);
   const [itemToEdit, setItemToEdit] = useState(null);
-  const [itemToDelete, setItemToDelete] = useState(null);
   const [isCreating, setIsCreating] = useState(false);
 
   const [isListJsonModalOpen, setIsListJsonModalOpen] = useState(false);
@@ -31,30 +80,46 @@ export default function MedicalExaminationsPage() {
   const [confirmConfig, setConfirmConfig] = useState({});
 
   useEffect(() => {
-    fetchData();
+      api.getPositions().then(setPositions).catch(console.error);
+  }, []);
+  
+  const refetchData = useCallback(() => {
+    setFilters(prev => ({ ...prev }));
   }, []);
 
-  const fetchData = async () => {
-      try {
+  useEffect(() => {
+    const fetchFilteredData = async () => {
         setLoading(true);
         setError(null);
-        const data = await api.getMedicalExaminations();
-        setExaminations(data);
-      } catch (e) {
-        setError(e.message);
-      } finally {
-        setLoading(false);
-      }
-  };
 
-  useEffect(() => {
-    if (examinations) {
-      const summaries = examinations.map(exam =>
-        `Осмотр ID ${exam.id} для ${exam.employee ? `${exam.employee.firstName} ${exam.employee.lastName}` : 'Неизвестный сотрудник'}`
-      );
-      setExaminationSummaries(summaries);
-    }
-  }, [examinations]);
+        const activeFilters = Object.entries(filters).reduce((acc, [key, value]) => {
+            if (value !== '' && value !== null && value !== undefined) {
+                acc[key] = value;
+            }
+            return acc;
+        }, {});
+
+        try {
+            const [examsData, countData] = await Promise.all([
+                api.getMedicalExaminations(activeFilters),
+                api.getMedicalExaminationCount(activeFilters),
+            ]);
+            setExaminations(examsData);
+            setExamCount(countData.count);
+        } catch (err) {
+            setError(err.message);
+        } finally {
+            setLoading(false);
+        }
+    };
+
+    fetchFilteredData();
+  }, [filters]);
+
+  const handleFilterChange = (e) => {
+      const { name, value } = e.target;
+      setFilters(prev => ({ ...prev, [name]: value }));
+  };
 
   const handleSave = (formData) => {
     isCreating ? handleCreate(formData) : handleUpdate(formData);
@@ -72,7 +137,7 @@ export default function MedicalExaminationsPage() {
   const confirmCreate = async (formData) => {
     try {
         await api.createMedicalExamination(formData);
-        fetchData();
+        refetchData();
         closeModals();
     } catch(e) {
         alert(`Ошибка при создании: ${e.message}`);
@@ -90,8 +155,8 @@ export default function MedicalExaminationsPage() {
 
   const confirmUpdate = async (formData) => {
     try {
-      const updatedExam = await api.updateMedicalExamination(itemToEdit.id, formData);
-      setExaminations(examinations.map(ex => ex.id === updatedExam.id ? updatedExam : ex));
+      await api.updateMedicalExamination(itemToEdit.id, formData);
+      refetchData();
       closeModals();
     } catch (e) {
       alert(`Ошибка при обновлении: ${e.message}`);
@@ -111,7 +176,7 @@ export default function MedicalExaminationsPage() {
   const confirmDelete = async (id) => {
     try {
       await api.deleteMedicalExamination(id);
-      setExaminations(examinations.filter(ex => ex.id !== id));
+      refetchData();
       closeModals();
     } catch (e) {
       alert(`Ошибка при удалении: ${e.message}`);
@@ -136,7 +201,6 @@ export default function MedicalExaminationsPage() {
     setIsFormModalOpen(false);
     setIsConfirmModalOpen(false);
     setItemToEdit(null);
-    setItemToDelete(null);
     setIsCreating(false);
     setIsItemJsonModalOpen(false);
   };
@@ -155,26 +219,14 @@ export default function MedicalExaminationsPage() {
     if (!exam) return '/src/assets/employee-placeholder.png';
     return exam.result ? '/src/assets/healthy-worker.png' : '/src/assets/sick-worker.png';
   };
-
-  if (loading) return <LoadingText>Загрузка медосмотров...</LoadingText>;
-  if (error) return <ErrorText>Ошибка при загрузке: {error}</ErrorText>;
-
+  
   return (
     <PageContainer>
       <PageHeader>
-        <h2>Медицинские осмотры</h2>
+        <h2>Медицинские осмотры ({loading ? '...' : examCount})</h2>
         <TopBarActions>
           <ActionButton onClick={openCreateModal}>Создать</ActionButton>
-          <FilterDropdown>
-            <FilterItem>
-              <label>Показать только сводку</label>
-              <input
-                type="checkbox"
-                checked={showSummariesOnly}
-                onChange={() => setShowSummariesOnly(p => !p)}
-              />
-            </FilterItem>
-          </FilterDropdown>
+          <MedicalExaminationFilters filters={filters} onFilterChange={handleFilterChange} positions={positions} />
           <ActionButton onClick={() => setIsListJsonModalOpen(true)}>JSON</ActionButton>
         </TopBarActions>
       </PageHeader>
@@ -211,8 +263,10 @@ export default function MedicalExaminationsPage() {
 
       <ConfirmationModal isOpen={isConfirmModalOpen} onClose={closeModals} {...confirmConfig} />
 
-      {showSummariesOnly ? (
-        <NameList>{examinationSummaries.map((summary, index) => <li key={index}>{summary}</li>)}</NameList>
+      {loading ? (
+        <LoadingText>Загрузка медосмотров...</LoadingText>
+      ) : error ? (
+        <ErrorText>Ошибка при загрузке: {error}</ErrorText>
       ) : (
         <CardContainer>{examinations.map(exam =>
             <MedicalExaminationCard key={exam.id} exam={exam} onClick={() => setSelectedExam(exam)} />

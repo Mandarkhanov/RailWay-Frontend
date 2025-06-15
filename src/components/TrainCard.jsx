@@ -15,6 +15,9 @@ export default function TrainCard({ train, onClick }) {
     <ClickableCard onClick={onClick} style={{ backgroundColor: getStatusColor(train.status) }}>
       <h3>{train.model}</h3>
       <p><strong>Статус:</strong> {train.status}</p>
+      <p><strong>Совершено рейсов:</strong> {train.tripsCount}</p>
+      <p><strong>Всего ТО:</strong> {train.maintenanceCount}</p>
+      <p><strong>Кол-во ремонтов:</strong> {train.repairCount}</p>
       <p><strong>Дата постройки:</strong> {train.buildDate ? new Date(train.buildDate).toLocaleDateString() : 'N/A'}</p>
     </ClickableCard>
   );

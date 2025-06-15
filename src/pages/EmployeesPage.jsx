@@ -1,4 +1,4 @@
-import { useState, useEffect, useMemo } from 'react';
+import { useState, useEffect, useMemo, useCallback } from 'react';
 import styled from 'styled-components';
 import * as api from '../services/api';
 import EmployeeCard from '../components/EmployeeCard';
@@ -10,8 +10,9 @@ import ConfirmationModal from '../components/ConfirmationModal';
 import AlertModal from '../components/AlertModal';
 import EmployeeForm from '../forms/EmployeeForm';
 import ModalFooter from '../components/ModalFooter';
-import { CardContainer, NameList } from '../commonStyles';
+import { CardContainer } from '../commonStyles';
 import { PageContainer, LoadingText, ErrorText, TopBarActions, ActionButton, FilterItem, PageHeader } from './pageStyles';
+import { FormGroup, Label, Input, Select } from '../forms/formStyles';
 
 const FlexRow = styled.div`
   display: flex;
@@ -27,19 +28,86 @@ const getAvatarForEmployee = (employee) => {
   return '/src/assets/employee-placeholder.png';
 };
 
+const EmployeeFilters = ({ filters, onFilterChange, departments, brigades }) => (
+  <FilterDropdown>
+    <FilterItem>
+      <Label>Отдел</Label>
+      <Select name="departmentId" value={filters.departmentId || ''} onChange={onFilterChange}>
+        <option value="">Все</option>
+        {departments.map(d => <option key={d.id} value={d.id}>{d.name}</option>)}
+      </Select>
+    </FilterItem>
+    <FilterItem>
+      <Label>Бригада</Label>
+      <Select name="brigadeId" value={filters.brigadeId || ''} onChange={onFilterChange}>
+        <option value="">Все</option>
+        {brigades.map(b => <option key={b.id} value={b.id}>{b.name}</option>)}
+      </Select>
+    </FilterItem>
+    <FilterItem>
+      <Label>Стаж (лет, не менее)</Label>
+      <Input type="number" name="minExperience" value={filters.minExperience || ''} onChange={onFilterChange} placeholder="Напр. 5" />
+    </FilterItem>
+    <FilterItem>
+      <Label>Пол</Label>
+      <Select name="gender" value={filters.gender || ''} onChange={onFilterChange}>
+        <option value="">Любой</option>
+        <option value="М">М</option>
+        <option value="Ж">Ж</option>
+      </Select>
+    </FilterItem>
+    <FilterItem>
+        <Label>Возраст (от и до)</Label>
+        <div style={{display: 'flex', gap: '5px'}}>
+            <Input style={{width: '60px'}} type="number" name="minAge" value={filters.minAge || ''} onChange={onFilterChange} placeholder="20" />
+            <Input style={{width: '60px'}} type="number" name="maxAge" value={filters.maxAge || ''} onChange={onFilterChange} placeholder="50" />
+        </div>
+    </FilterItem>
+     <FilterItem>
+      <Label>Наличие детей</Label>
+      <Select name="hasChildren" value={filters.hasChildren ?? ''} onChange={onFilterChange}>
+        <option value="">Неважно</option>
+        <option value="true">Есть</option>
+        <option value="false">Нет</option>
+      </Select>
+    </FilterItem>
+    <FilterItem>
+        <Label>Зарплата (от и до)</Label>
+        <div style={{display: 'flex', gap: '5px'}}>
+            <Input style={{width: '80px'}} type="number" name="minSalary" value={filters.minSalary || ''} onChange={onFilterChange} placeholder="50000" />
+            <Input style={{width: '80px'}} type="number" name="maxSalary" value={filters.maxSalary || ''} onChange={onFilterChange} placeholder="100000" />
+        </div>
+    </FilterItem>
+    {/* ===== НОВЫЙ ФИЛЬТР ===== */}
+    <FilterItem>
+        <label style={{ display: 'flex', flexDirection: 'row', alignItems: 'center', gap: '10px', fontWeight: 'normal', cursor: 'pointer' }}>
+            <input 
+              type="checkbox" 
+              name="isManager" 
+              checked={filters.isManager || false} 
+              onChange={onFilterChange}
+            />
+            <span>Только начальники</span>
+        </label>
+    </FilterItem>
+  </FilterDropdown>
+);
+
+
 export default function EmployeesPage() {
     const [employees, setEmployees] = useState([]);
-    const [employeeNames, setEmployeeNames] = useState([]);
+    const [employeeCount, setEmployeeCount] = useState(0);
     const [positions, setPositions] = useState([]);
+    const [departments, setDepartments] = useState([]);
+    const [brigades, setBrigades] = useState([]);
     const [loading, setLoading] = useState(true);
     const [error, setError] = useState(null);
     
-    const [showNamesOnly, setShowNamesOnly] = useState(false);
+    const [filters, setFilters] = useState({});
     const [isSortedAZ, setIsSortedAZ] = useState(false);
-    
+
     const [selectedItem, setSelectedItem] = useState(null);
     const [itemToEdit, setItemToEdit] = useState(null);
-    const [itemToDelete, setItemToDelete] = useState(null);
     const [isCreating, setIsCreating] = useState(false);
   
     const [isListJsonModalOpen, setIsListJsonModalOpen] = useState(false);
@@ -51,289 +119,263 @@ export default function EmployeesPage() {
     const [isAlertModalOpen, setIsAlertModalOpen] = useState(false);
     const [alertConfig, setAlertConfig] = useState({});
 
-  useEffect(() => {
-    const loadInitialData = async () => {
-        try {
+    useEffect(() => {
+        Promise.all([
+            api.getPositions(),
+            api.getDepartments(),
+            api.getBrigades()
+        ]).then(([positionsData, departmentsData, brigadesData]) => {
+            setPositions(positionsData);
+            setDepartments(departmentsData);
+            setBrigades(brigadesData);
+        }).catch(console.error);
+    }, []);
+
+    useEffect(() => {
+        const fetchFilteredEmployees = async () => {
             setLoading(true);
             setError(null);
-            const [employeesData, positionsData] = await Promise.all([
-                api.getEmployees(),
-                api.getPositions()
-            ]);
-            setEmployees(employeesData);
-            setPositions(positionsData);
-        } catch(e) {
-            setError(e.message);
-        } finally {
-            setLoading(false);
-        }
+
+            const activeFilters = Object.entries(filters).reduce((acc, [key, value]) => {
+                if (value !== '' && value !== null && value !== undefined) {
+                    acc[key] = value;
+                }
+                return acc;
+            }, {});
+
+            try {
+                const [employeesData, countData] = await Promise.all([
+                    api.getEmployees(activeFilters),
+                    api.getEmployeeCount(activeFilters),
+                ]);
+                setEmployees(employeesData);
+                setEmployeeCount(countData.count);
+            } catch (err) {
+                setError(err.message);
+            } finally {
+                setLoading(false);
+            }
+        };
+
+        fetchFilteredEmployees();
+    }, [filters]);
+    
+    const handleFilterChange = (e) => {
+        const { name, value, type, checked } = e.target;
+        const newFilterValue = type === 'checkbox' ? checked : value;
+        setFilters(prev => ({ ...prev, [name]: newFilterValue }));
     };
-    loadInitialData();
-  }, []);
 
-  useEffect(() => {
-    if (showNamesOnly) {
-        api.getEmployeeNames().then(setEmployeeNames).catch(setError);
-    }
-  }, [showNamesOnly]);
+    const sortedEmployees = useMemo(() => {
+        if (!isSortedAZ) return employees;
+        return [...employees].sort((a, b) => 
+          `${a.firstName} ${a.lastName}`.localeCompare(`${b.firstName} ${b.lastName}`, 'ru')
+        );
+    }, [employees, isSortedAZ]);
 
-  const fetchData = async () => {
-    try {
-        setLoading(true);
-        const data = await api.getEmployees();
-        setEmployees(data);
-    } catch(e) {
-        setError(e.message);
-    } finally {
-        setLoading(false);
-    }
-  };
-
-  const showAlert = (message) => {
-      setAlertConfig({ title: "Ошибка валидации", message });
-      setIsAlertModalOpen(true);
-  };
-
-  const handleSave = (formData) => {
-    const salary = parseFloat(formData.salary);
-    const positionId = parseInt(formData.positionId, 10);
+    const refetchData = useCallback(() => {
+        setFilters(prev => ({...prev}));
+    }, []);
     
-    if (!positionId) {
-        showAlert("Необходимо выбрать должность.");
-        return;
-    }
-    
-    const selectedPosition = positions.find(p => p.id === positionId);
-
-    if (selectedPosition && !isNaN(salary)) {
-        const { minSalary, maxSalary } = selectedPosition;
-        if (minSalary !== null && salary < minSalary) {
-            showAlert(`Зарплата (${salary}) не может быть меньше минимальной (${minSalary}) для этой должности.`);
+    const handleSave = (formData) => {
+        const salary = parseFloat(formData.salary);
+        const positionId = parseInt(formData.positionId, 10);
+        if (!positionId) {
+            showAlert("Необходимо выбрать должность.");
             return;
         }
-        if (maxSalary !== null && salary > maxSalary) {
-            showAlert(`Зарплата (${salary}) не может быть больше максимальной (${maxSalary}) для этой должности.`);
-            return;
+        const selectedPosition = positions.find(p => p.id === positionId);
+        if (selectedPosition && !isNaN(salary)) {
+            const { minSalary, maxSalary } = selectedPosition;
+            if (minSalary !== null && salary < minSalary) {
+                showAlert(`Зарплата (${salary}) не может быть меньше минимальной (${minSalary}) для этой должности.`);
+                return;
+            }
+            if (maxSalary !== null && salary > maxSalary) {
+                showAlert(`Зарплата (${salary}) не может быть больше максимальной (${maxSalary}) для этой должности.`);
+                return;
+            }
         }
-    }
-    
-    if (isCreating) {
-      handleCreate(formData);
-    } else {
-      handleUpdate(formData);
-    }
-  };
-  
-  const handleCreate = (formData) => {
-    const fullDto = { 
-        ...formData, 
-        birthDate: '1990-01-01',
-        gender: 'М',
-        childrenCount: 0,
-        salary: parseFloat(formData.salary) || null,
-        positionId: parseInt(formData.positionId, 10)
+        isCreating ? handleCreate(formData) : handleUpdate(formData);
     };
-    setConfirmConfig({
-        title: 'Подтвердите создание',
-        message: `Создать нового сотрудника "${formData.firstName} ${formData.lastName}"?`,
-        onConfirm: () => confirmCreate(fullDto),
-    });
-    setIsFormModalOpen(false);
-    setIsConfirmModalOpen(true);
-  };
+    
+    const handleCreate = (formData) => {
+        const fullDto = { 
+            ...formData, 
+            birthDate: '1990-01-01', gender: 'М', childrenCount: 0,
+            salary: parseFloat(formData.salary) || null,
+            positionId: parseInt(formData.positionId, 10)
+        };
+        setConfirmConfig({
+            title: 'Подтвердите создание',
+            message: `Создать нового сотрудника "${formData.firstName} ${formData.lastName}"?`,
+            onConfirm: async () => {
+                try {
+                    await api.createEmployee(fullDto);
+                    refetchData();
+                    closeModals();
+                } catch(e) { showAlert(e.message); }
+            },
+        });
+        setIsFormModalOpen(false);
+        setIsConfirmModalOpen(true);
+    };
   
-  const confirmCreate = async(formData) => {
-    try {
-        await api.createEmployee(formData);
-        fetchData();
-        closeModals();
-    } catch(e) {
+    const handleUpdate = (formData) => {
+        const dtoToSend = {
+            firstName: formData.firstName, lastName: formData.lastName,
+            birthDate: itemToEdit.birthDate, gender: itemToEdit.gender,
+            childrenCount: itemToEdit.childrenCount, hireDate: formData.hireDate,
+            positionId: parseInt(formData.positionId, 10),
+            salary: parseFloat(formData.salary) || null,
+            isActive: formData.isActive,
+        };
+        setConfirmConfig({
+            title: 'Подтвердите изменение',
+            message: `Сохранить изменения для сотрудника "${itemToEdit.firstName} ${itemToEdit.lastName}"?`,
+            onConfirm: async () => {
+                try {
+                    await api.updateEmployee(itemToEdit.id, dtoToSend);
+                    refetchData();
+                    closeModals();
+                } catch(e) { showAlert(e.message); }
+            },
+        });
+        setIsFormModalOpen(false);
+        setIsConfirmModalOpen(true);
+    };
+    
+    const handleDelete = (employee) => {
+        setConfirmConfig({
+            title: 'Подтвердите удаление',
+            message: `Удалить сотрудника "${employee.firstName} ${employee.lastName}"?`,
+            onConfirm: async () => {
+                try {
+                    await api.deleteEmployee(employee.id);
+                    refetchData();
+                    closeModals();
+                } catch(e) { showAlert(e.message); }
+            },
+        });
+        setIsConfirmModalOpen(true);
+    };
+
+    const showAlert = (message) => {
         setConfirmConfig({});
         setIsConfirmModalOpen(false);
-        showAlert(e.message);
-    }
-  };
-
-  const handleUpdate = (formData) => {
-    setConfirmConfig({
-      title: 'Подтвердите изменение',
-      message: `Вы уверены, что хотите сохранить изменения для сотрудника "${itemToEdit.firstName} ${itemToEdit.lastName}"?`,
-      onConfirm: () => confirmUpdate(formData),
-    });
-    setIsFormModalOpen(false);
-    setIsConfirmModalOpen(true);
-  };
-  
-  const confirmUpdate = async (formData) => {
-    const dtoToSend = {
-      firstName: formData.firstName,
-      lastName: formData.lastName,
-      birthDate: itemToEdit.birthDate, 
-      gender: itemToEdit.gender,
-      childrenCount: itemToEdit.childrenCount,
-      hireDate: formData.hireDate,
-      positionId: parseInt(formData.positionId, 10),
-      salary: parseFloat(formData.salary) || null,
-      isActive: formData.isActive,
+        setAlertConfig({ title: "Ошибка", message });
+        setIsAlertModalOpen(true);
     };
-
-    try {
-      const updatedEmployee = await api.updateEmployee(itemToEdit.id, dtoToSend);
-      setEmployees(employees.map(e => e.id === updatedEmployee.id ? updatedEmployee : e));
-      closeModals();
-    } catch (e) {
-      setConfirmConfig({});
-      setIsConfirmModalOpen(false);
-      showAlert(e.message);
-    }
-  };
   
-  const handleDelete = (employee) => {
-    setConfirmConfig({
-      title: 'Подтвердите удаление',
-      message: `Вы уверены, что хотите удалить сотрудника "${employee.firstName} ${employee.lastName}"?`,
-      onConfirm: () => confirmDelete(employee.id),
-    });
-    setIsConfirmModalOpen(true);
-  };
+    const openCreateModal = () => {
+      setIsCreating(true);
+      setItemToEdit(null);
+      setIsFormModalOpen(true);
+    };
+  
+    const openEditModal = (employee) => {
+      setIsCreating(false);
+      setItemToEdit(employee);
+      setSelectedItem(null);
+      setIsFormModalOpen(true);
+    };
+  
+    const closeModals = () => {
+      setSelectedItem(null);
+      setIsFormModalOpen(false);
+      setIsConfirmModalOpen(false);
+      setIsAlertModalOpen(false);
+      setItemToEdit(null);
+      setIsCreating(false);
+      setIsItemJsonModalOpen(false);
+    };
+  
+    const openItemJsonModal = () => {
+      setIsItemJsonModalOpen(true);
+    };
+  
+    const detailModalActions = selectedItem ? [
+      { label: 'Изменить', onClick: () => openEditModal(selectedItem), type: 'primary' },
+      { label: 'Удалить', onClick: () => handleDelete(selectedItem), type: 'danger' },
+      { label: 'JSON', onClick: openItemJsonModal, type: 'secondary' },
+    ] : [];
 
-  const confirmDelete = async (id) => {
-    try {
-      await api.deleteEmployee(id);
-      setEmployees(employees.filter(e => e.id !== id));
-      closeModals();
-    } catch (e) {
-      closeModals();
-      showAlert(e.message);
-    }
-  };
-
-  const openCreateModal = () => {
-    setIsCreating(true);
-    setItemToEdit(null);
-    setIsFormModalOpen(true);
-  };
-
-  const openEditModal = (employee) => {
-    setIsCreating(false);
-    setItemToEdit(employee);
-    setSelectedItem(null);
-    setIsFormModalOpen(true);
-  };
-
-  const closeModals = () => {
-    setSelectedItem(null);
-    setIsFormModalOpen(false);
-    setIsConfirmModalOpen(false);
-    setIsAlertModalOpen(false);
-    setItemToEdit(null);
-    setItemToDelete(null);
-    setIsCreating(false);
-    setIsItemJsonModalOpen(false);
-  };
-
-  const openItemJsonModal = () => {
-    setIsItemJsonModalOpen(true);
-  };
-
-  const detailModalActions = selectedItem ? [
-    { label: 'Изменить', onClick: () => openEditModal(selectedItem), type: 'primary' },
-    { label: 'Удалить', onClick: () => handleDelete(selectedItem), type: 'danger' },
-    { label: 'JSON', onClick: openItemJsonModal, type: 'secondary' },
-  ] : [];
-
-  const sortedEmployees = useMemo(() => {
-    if (!isSortedAZ) return employees;
-    return [...employees].sort((a, b) =>
-      `${a.firstName} ${a.lastName}`.localeCompare(`${b.firstName} ${b.lastName}`, 'ru')
-    );
-  }, [employees, isSortedAZ]);
-
-  const sortedEmployeeNames = useMemo(() => {
-    if (!employeeNames.length && employees.length) {
-        return employees.map(e => `${e.firstName} ${e.lastName}`).sort((a, b) => a.localeCompare(b, 'ru'));
-    }
-    if (!isSortedAZ) return employeeNames;
-    return [...employeeNames].sort((a, b) => a.localeCompare(b, 'ru'));
-  }, [employeeNames, employees, isSortedAZ]);
-
-  if (loading) return <LoadingText>Загрузка сотрудников...</LoadingText>;
-  if (error) return <ErrorText>Ошибка при загрузке: {error}</ErrorText>;
-
-  return (
+    return (
     <PageContainer>
-      <PageHeader>
-        <h2>Сотрудники</h2>
+        <PageHeader>
+        <h2>Сотрудники ({loading ? '...' : employeeCount})</h2>
         <TopBarActions>
-          <ActionButton onClick={openCreateModal}>Создать</ActionButton>
-          <FilterDropdown>
-            <FilterItem>
-              <label>Показать только ФИО</label>
-              <input type="checkbox" checked={showNamesOnly} onChange={() => setShowNamesOnly(p => !p)} />
-            </FilterItem>
+            <ActionButton onClick={openCreateModal}>Создать</ActionButton>
+            <EmployeeFilters filters={filters} onFilterChange={handleFilterChange} departments={departments} brigades={brigades} />
             <FilterItem>
               <label>Сортировать А-Я</label>
-              <input type="checkbox" checked={isSortedAZ} onChange={() => setIsSortedAZ(p => !p)} />
+              <input type="checkbox" checked={isSortedAZ} onChange={(e) => setIsSortedAZ(e.target.checked)} />
             </FilterItem>
-          </FilterDropdown>
-          <ActionButton onClick={() => setIsListJsonModalOpen(true)}>JSON</ActionButton>
+            <ActionButton onClick={() => setIsListJsonModalOpen(true)}>JSON</ActionButton>
         </TopBarActions>
-      </PageHeader>
-      
-      <JsonModal isOpen={isListJsonModalOpen} onClose={() => setIsListJsonModalOpen(false)}>
-        {JSON.stringify(employees, null, 2)}
-      </JsonModal>
-
-      <JsonModal isOpen={isItemJsonModalOpen} onClose={() => setIsItemJsonModalOpen(false)}>
-        {selectedItem ? JSON.stringify(selectedItem, null, 2) : ''}
-      </JsonModal>
-
-      <DetailsModal 
-        isOpen={!!selectedItem} 
-        onClose={closeModals} 
-        imageSrc={getAvatarForEmployee(selectedItem)} 
-        imageAspectRatio="portrait" 
-        footer={<ModalFooter actions={detailModalActions} />}
-      >
-        {selectedItem && (
-          <>
-            <h2>{selectedItem.firstName} {selectedItem.lastName}</h2>
-            <p><strong>ID:</strong> {selectedItem.id}</p>
-            <p><strong>Должность:</strong> {selectedItem.position?.name || 'N/A'}</p>
-            <p><strong>Отдел:</strong> {selectedItem.position?.department?.name || 'N/A'}</p>
-            <p><strong>Дата найма:</strong> {new Date(selectedItem.hireDate).toLocaleDateString()}</p>
-            <p><strong>Зарплата:</strong> {selectedItem.salary} рублей</p>
-            <FlexRow>
-              <p><strong>Пол:</strong> {selectedItem.gender}</p>
-              <p><strong>Дети:</strong> {selectedItem.childrenCount}</p>
-            </FlexRow>
-            <p><strong>Статус:</strong> {selectedItem.isActive ? 'Активен' : 'Неактивен'}</p>
-          </>
+        </PageHeader>
+        
+        {loading ? (
+            <LoadingText>Загрузка сотрудников...</LoadingText>
+        ) : error ? (
+            <ErrorText>Ошибка при загрузке: {error}</ErrorText>
+        ) : (
+            <CardContainer>
+                {sortedEmployees && sortedEmployees.map(emp => 
+                    <EmployeeCard key={emp.id} employee={emp} onClick={() => setSelectedItem(emp)} />
+                )}
+            </CardContainer>
         )}
-      </DetailsModal>
+        
+        <JsonModal isOpen={isListJsonModalOpen} onClose={() => setIsListJsonModalOpen(false)}>
+            {JSON.stringify(employees, null, 2)}
+        </JsonModal>
 
-      <FormModal isOpen={isFormModalOpen} onClose={closeModals} title={isCreating ? "Создать сотрудника" : "Изменить сотрудника"}>
-        <EmployeeForm 
-            employee={isCreating ? null : itemToEdit} 
-            positions={positions} 
-            onSave={handleSave} 
-            onCancel={closeModals} 
+        <JsonModal isOpen={isItemJsonModalOpen} onClose={closeModals}>
+            {selectedItem ? JSON.stringify(selectedItem, null, 2) : ''}
+        </JsonModal>
+
+        <DetailsModal 
+            isOpen={!!selectedItem} 
+            onClose={closeModals} 
+            imageSrc={getAvatarForEmployee(selectedItem)} 
+            imageAspectRatio="portrait" 
+            footer={<ModalFooter actions={detailModalActions} />}
+        >
+            {selectedItem && (
+            <>
+                <h2>{selectedItem.firstName} {selectedItem.lastName}</h2>
+                <p><strong>ID:</strong> {selectedItem.id}</p>
+                <p><strong>Должность:</strong> {selectedItem.position?.name || 'N/A'}</p>
+                <p><strong>Отдел:</strong> {selectedItem.position?.department?.name || 'N/A'}</p>
+                <p><strong>Дата найма:</strong> {new Date(selectedItem.hireDate).toLocaleDateString()}</p>
+                <p><strong>Дата рождения:</strong> {selectedItem.birthDate ? new Date(selectedItem.birthDate).toLocaleDateString() : 'N/A'}</p>
+                <p><strong>Зарплата:</strong> {selectedItem.salary} рублей</p>
+                <FlexRow>
+                <p><strong>Пол:</strong> {selectedItem.gender}</p>
+                <p><strong>Дети:</strong> {selectedItem.childrenCount}</p>
+                </FlexRow>
+                <p><strong>Статус:</strong> {selectedItem.isActive ? 'Активен' : 'Неактивен'}</p>
+            </>
+            )}
+        </DetailsModal>
+
+        <FormModal isOpen={isFormModalOpen} onClose={closeModals} title={isCreating ? "Создать сотрудника" : "Изменить сотрудника"}>
+            <EmployeeForm 
+                employee={isCreating ? null : itemToEdit} 
+                positions={positions} 
+                onSave={handleSave} 
+                onCancel={closeModals} 
+            />
+        </FormModal>
+
+        <ConfirmationModal isOpen={isConfirmModalOpen} onClose={closeModals} {...confirmConfig} />
+
+        <AlertModal 
+            isOpen={isAlertModalOpen} 
+            onClose={closeModals} 
+            {...alertConfig} 
         />
-      </FormModal>
-
-      <ConfirmationModal isOpen={isConfirmModalOpen} onClose={closeModals} {...confirmConfig} />
-
-      <AlertModal 
-        isOpen={isAlertModalOpen} 
-        onClose={() => setIsAlertModalOpen(false)} 
-        {...alertConfig} 
-      />
-
-      {showNamesOnly ? (
-        <NameList>{sortedEmployeeNames.map((name, index) => <li key={index}>{name}</li>)}</NameList>
-      ) : (
-        <CardContainer>{sortedEmployees.map(emp => <EmployeeCard key={emp.id} employee={emp} onClick={() => setSelectedItem(emp)} />)}</CardContainer>
-      )}
     </PageContainer>
-  );
+    );
 }

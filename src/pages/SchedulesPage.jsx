@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useCallback } from 'react';
 import * as api from '../services/api';
 import ScheduleCard from '../components/ScheduleCard';
 import JsonModal from '../components/JsonModal';
@@ -7,13 +7,50 @@ import FormModal from '../components/FormModal';
 import ConfirmationModal from '../components/ConfirmationModal';
 import ScheduleForm from '../forms/ScheduleForm';
 import ModalFooter from '../components/ModalFooter';
+import FilterDropdown from '../components/FilterDropdown';
 import { CardContainer } from '../commonStyles';
-import { PageContainer, LoadingText, ErrorText, TopBarActions, ActionButton, PageHeader } from './pageStyles';
+import { PageContainer, LoadingText, ErrorText, TopBarActions, ActionButton, PageHeader, FilterItem } from './pageStyles';
+import { Label, Input, Select } from '../forms/formStyles';
+
+const scheduleStatuses = ['по расписанию', 'задержан', 'отменен', 'выполнен', 'в пути'];
+
+const ScheduleFilters = ({ filters, onFilterChange, routes }) => (
+    <FilterDropdown>
+        <FilterItem>
+            <Label>Маршрут</Label>
+            <Select name="routeId" value={filters.routeId || ''} onChange={onFilterChange}>
+                <option value="">Все маршруты</option>
+                {routes.map(r => <option key={r.id} value={r.id}>{r.name}</option>)}
+            </Select>
+        </FilterItem>
+        <FilterItem>
+            <Label>Статус рейса</Label>
+            <Select name="trainStatus" value={filters.trainStatus || ''} onChange={onFilterChange}>
+                <option value="">Все статусы</option>
+                {scheduleStatuses.map(status => <option key={status} value={status}>{status}</option>)}
+            </Select>
+        </FilterItem>
+        <FilterItem>
+            <Label>Цена (от и до)</Label>
+            <div style={{display: 'flex', gap: '5px'}}>
+                <Input style={{width: '80px'}} type="number" name="minPrice" value={filters.minPrice || ''} onChange={onFilterChange} placeholder="1000" />
+                <Input style={{width: '80px'}} type="number" name="maxPrice" value={filters.maxPrice || ''} onChange={onFilterChange} placeholder="5000" />
+            </div>
+        </FilterItem>
+        <FilterItem>
+            <Label>Сданных билетов (от)</Label>
+            <Input type="number" name="minReturnedTickets" value={filters.minReturnedTickets || ''} onChange={onFilterChange} placeholder="Напр. 1" />
+        </FilterItem>
+    </FilterDropdown>
+);
 
 export default function SchedulesPage() {
   const [schedules, setSchedules] = useState([]);
+  const [routes, setRoutes] = useState([]);
+  const [scheduleCount, setScheduleCount] = useState(0);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
+  const [filters, setFilters] = useState({});
   
   const [selectedItem, setSelectedItem] = useState(null);
   const [isCreating, setIsCreating] = useState(false);
@@ -25,20 +62,34 @@ export default function SchedulesPage() {
   const [confirmConfig, setConfirmConfig] = useState({});
 
   useEffect(() => {
-    fetchData();
+    api.getRoutes().then(setRoutes).catch(console.error);
   }, []);
 
-  const fetchData = async () => {
+  const fetchData = useCallback(async () => {
+    setLoading(true);
+    setError(null);
     try {
-      setLoading(true);
-      setError(null);
-      const data = await api.getSchedules();
+      const activeFilters = Object.fromEntries(Object.entries(filters).filter(([, value]) => value));
+      const [data, countData] = await Promise.all([
+        api.getSchedules(activeFilters),
+        api.getScheduleCount(activeFilters)
+      ]);
       setSchedules(data);
+      setScheduleCount(countData.count);
     } catch (e) {
       setError(e.message);
     } finally {
       setLoading(false);
     }
+  }, [filters]);
+
+  useEffect(() => {
+    fetchData();
+  }, [fetchData]);
+
+  const handleFilterChange = (e) => {
+    const { name, value } = e.target;
+    setFilters(prev => ({ ...prev, [name]: value }));
   };
 
   const handleSave = (formData) => {
@@ -132,18 +183,24 @@ export default function SchedulesPage() {
     { label: 'JSON', onClick: openItemJsonModal, type: 'secondary' },
   ] : [];
 
-  if (loading) return <LoadingText>Загрузка рейсов...</LoadingText>;
-  if (error) return <ErrorText>Ошибка при загрузке: {error}</ErrorText>;
-
   return (
     <PageContainer>
       <PageHeader>
-        <h2>Рейсы</h2>
+        <h2>Рейсы ({loading ? '...' : scheduleCount})</h2>
         <TopBarActions>
           <ActionButton onClick={openCreateModal}>Создать</ActionButton>
+          <ScheduleFilters filters={filters} onFilterChange={handleFilterChange} routes={routes} />
           <ActionButton onClick={() => setIsListJsonModalOpen(true)}>JSON</ActionButton>
         </TopBarActions>
       </PageHeader>
+      
+      {loading ? (
+        <LoadingText>Загрузка рейсов...</LoadingText>
+      ) : error ? (
+        <ErrorText>Ошибка: {error}</ErrorText>
+      ) : (
+        <CardContainer>{schedules.map(item => <ScheduleCard key={item.id} schedule={item} onClick={() => setSelectedItem(item)} />)}</CardContainer>
+      )}
 
       <JsonModal isOpen={isListJsonModalOpen} onClose={() => setIsListJsonModalOpen(false)}>
         {JSON.stringify(schedules, null, 2)}
@@ -165,6 +222,13 @@ export default function SchedulesPage() {
             <p><strong>Прибытие:</strong> {new Date(selectedItem.arrivalTime).toLocaleString()}</p>
             <p><strong>Цена:</strong> {selectedItem.basePrice} руб.</p>
             <p><strong>Статус:</strong> {selectedItem.trainStatus}</p>
+            <hr />
+            <h4>Статистика по билетам:</h4>
+            <p><strong>Всего билетов:</strong> {selectedItem.totalTickets}</p>
+            <p><strong>Оплачено:</strong> {selectedItem.paidTickets}</p>
+            <p><strong>Забронировано:</strong> {selectedItem.bookedTickets}</p>
+            <p><strong>Возвращено:</strong> {selectedItem.returnedTickets}</p>
+            <p><strong>Использовано:</strong> {selectedItem.usedTickets}</p>
           </>
         )}
       </DetailsModal>
@@ -175,7 +239,6 @@ export default function SchedulesPage() {
       
       <ConfirmationModal isOpen={isConfirmModalOpen} onClose={closeModals} {...confirmConfig} />
 
-      <CardContainer>{schedules.map(item => <ScheduleCard key={item.id} schedule={item} onClick={() => setSelectedItem(item)} />)}</CardContainer>
     </PageContainer>
   );
 }

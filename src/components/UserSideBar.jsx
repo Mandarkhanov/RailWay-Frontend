@@ -31,6 +31,12 @@ const SidebarButton = styled.button`
 export default function UserSideBar({ setActiveView, activeView }) {
   return (
     <SidebarContainer>
+       <SidebarButton
+        onClick={() => setActiveView('home')}
+        $isActive={activeView === 'home'}
+      >
+        Главная
+      </SidebarButton>
       <SidebarButton
         onClick={() => setActiveView('tickets')}
         $isActive={activeView === 'tickets'}

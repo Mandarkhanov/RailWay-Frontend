@@ -197,6 +197,7 @@ export default function DepartmentsPage() {
           <>
             <h2>{selectedItem.name}</h2>
             <p><strong>ID:</strong> {selectedItem.id}</p>
+            <p><strong>Менеджер:</strong> {selectedItem.manager ? `${selectedItem.manager.firstName} ${selectedItem.manager.lastName}` : 'Не назначен'}</p>
             <p><strong>Описание:</strong> {selectedItem.description || 'Нет описания'}</p>
           </>
         )}

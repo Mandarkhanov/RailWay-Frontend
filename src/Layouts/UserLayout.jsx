@@ -3,7 +3,8 @@ import styled from 'styled-components';
 
 import Header from '../components/Header';
 import UserSideBar from '../components/UserSideBar';
-import { PageContainer, PageHeader } from '../pages/pageStyles';
+import UserTicketsPage from '../pages/UserTicketsPage';
+import UserHomePage from '../pages/UserHomePage';
 
 const AppContainer = styled.div`
   display: flex;
@@ -22,35 +23,34 @@ const ContentContainer = styled.div`
 const MainContent = styled.main`
   flex-grow: 1;
   overflow-y: auto; 
-  padding: 2rem;
 `;
 
 const PlaceholderPage = ({ title }) => (
-    <PageContainer>
-        <PageHeader><h2>{title}</h2></PageHeader>
-        <div style={{ flexGrow: 1, display: 'grid', placeContent: 'center' }}>
-            <p>In Develop</p>
-        </div>
-    </PageContainer>
+    <div style={{ padding: '2rem' }}>
+      <h2>{title}</h2>
+      <p>Эта страница находится в разработке.</p>
+    </div>
 );
 
 export default function UserLayout() {
-  const [activeView, setActiveView] = useState('tickets');
+  const [activeView, setActiveView] = useState('home');
 
   const renderView = () => {
     switch (activeView) {
+      case 'home':
+        return <UserHomePage />;
       case 'tickets':
-        return <PlaceholderPage title="Мои билеты" />;
+        return <UserTicketsPage />;
       case 'luggage':
         return <PlaceholderPage title="Багаж" />;
       default:
-        return <PlaceholderPage title="Мои билеты" />;
+        return <UserHomePage />;
     }
   };
 
   return (
     <AppContainer>
-      <Header />
+      <Header setActiveView={setActiveView} />
       <ContentContainer>
         <UserSideBar setActiveView={setActiveView} activeView={activeView} />
         <MainContent>

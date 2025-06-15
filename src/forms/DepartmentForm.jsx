@@ -1,12 +1,20 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import ModalFooter from '../components/ModalFooter';
-import { Form, FormGroup, Label, Input, Textarea } from './formStyles';
+import * as api from '../services/api';
+import { Form, FormGroup, Label, Input, Textarea, Select } from './formStyles';
 
 export default function DepartmentForm({ department, onSave, onCancel }) {
   const [formData, setFormData] = useState({
     name: department?.name || '',
     description: department?.description || '',
+    managerId: department?.manager?.id || '',
   });
+  
+  const [employees, setEmployees] = useState([]);
+
+  useEffect(() => {
+    api.getEmployees().then(setEmployees).catch(console.error);
+  }, []);
 
   const handleChange = (e) => {
     const { name, value } = e.target;
@@ -28,6 +36,15 @@ export default function DepartmentForm({ department, onSave, onCancel }) {
       <FormGroup>
         <Label htmlFor="name">Название отдела</Label>
         <Input type="text" id="name" name="name" value={formData.name} onChange={handleChange} required />
+      </FormGroup>
+      <FormGroup>
+        <Label htmlFor="managerId">Менеджер</Label>
+        <Select id="managerId" name="managerId" value={formData.managerId} onChange={handleChange}>
+          <option value="">Без менеджера</option>
+          {employees.map(e => (
+            <option key={e.id} value={e.id}>{e.firstName} {e.lastName}</option>
+          ))}
+        </Select>
       </FormGroup>
       <FormGroup>
         <Label htmlFor="description">Описание</Label>

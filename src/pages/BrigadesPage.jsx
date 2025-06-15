@@ -10,6 +10,7 @@ import BrigadeForm from '../forms/BrigadeForm';
 import ModalFooter from '../components/ModalFooter';
 import { CardContainer, NameList } from '../commonStyles';
 import { PageContainer, LoadingText, ErrorText, TopBarActions, ActionButton, FilterItem, PageHeader } from './pageStyles';
+import { Label, Input } from '../forms/formStyles';
 
 export default function BrigadesPage() {
   const [brigades, setBrigades] = useState([]);
@@ -19,6 +20,7 @@ export default function BrigadesPage() {
   
   const [showNamesOnly, setShowNamesOnly] = useState(false);
   const [isSortedAZ, setIsSortedAZ] = useState(false);
+  const [filters, setFilters] = useState({});
 
   const [selectedItem, setSelectedItem] = useState(null);
   const [itemToEdit, setItemToEdit] = useState(null);
@@ -51,6 +53,11 @@ export default function BrigadesPage() {
     } finally {
       setLoading(false);
     }
+  };
+  
+  const handleFilterChange = (e) => {
+    const { name, value } = e.target;
+    setFilters(prev => ({ ...prev, [name]: value }));
   };
 
   const handleSave = (formData) => {
@@ -147,10 +154,21 @@ export default function BrigadesPage() {
     { label: 'JSON', onClick: openItemJsonModal, type: 'secondary' },
   ] : [];
 
-  const sortedBrigades = useMemo(() => {
-    if (!isSortedAZ) return brigades;
-    return [...brigades].sort((a, b) => a.name.localeCompare(b.name, 'ru'));
-  }, [brigades, isSortedAZ]);
+  const filteredAndSortedBrigades = useMemo(() => {
+    let result = [...brigades];
+    
+    if (filters.minTotalSalary) {
+      result = result.filter(b => b.totalSalary >= filters.minTotalSalary);
+    }
+    if (filters.minAverageSalary) {
+        result = result.filter(b => b.averageSalary >= filters.minAverageSalary);
+    }
+
+    if (isSortedAZ) {
+      result.sort((a, b) => a.name.localeCompare(b.name, 'ru'));
+    }
+    return result;
+  }, [brigades, isSortedAZ, filters]);
 
   const sortedBrigadeNames = useMemo(() => {
     if (!isSortedAZ) return brigadeNames;
@@ -163,7 +181,7 @@ export default function BrigadesPage() {
   return (
     <PageContainer>
       <PageHeader>
-        <h2>Бригады</h2>
+        <h2>Бригады ({loading ? '...' : filteredAndSortedBrigades.length})</h2>
         <TopBarActions>
           <ActionButton onClick={openCreateModal}>Создать</ActionButton>
           <FilterDropdown>
@@ -174,6 +192,14 @@ export default function BrigadesPage() {
             <FilterItem>
               <label>Сортировать А-Я</label>
               <input type="checkbox" checked={isSortedAZ} onChange={() => setIsSortedAZ(p => !p)} />
+            </FilterItem>
+            <FilterItem>
+              <Label>Суммарная ЗП (от)</Label>
+              <Input type="number" name="minTotalSalary" value={filters.minTotalSalary || ''} onChange={handleFilterChange} placeholder="300000" />
+            </FilterItem>
+            <FilterItem>
+                <Label>Средняя ЗП (от)</Label>
+                <Input type="number" name="minAverageSalary" value={filters.minAverageSalary || ''} onChange={handleFilterChange} placeholder="75000" />
             </FilterItem>
           </FilterDropdown>
           <ActionButton onClick={() => setIsListJsonModalOpen(true)}>JSON</ActionButton>
@@ -198,6 +224,9 @@ export default function BrigadesPage() {
             {selectedItem.manager?.position && (
               <p><strong>Должность менеджера:</strong> {selectedItem.manager.position.name}</p>
             )}
+            <p><strong>Сотрудников:</strong> {selectedItem.employeeCount}</p>
+            <p><strong>Суммарная ЗП:</strong> {selectedItem.totalSalary != null ? `${new Intl.NumberFormat('ru-RU').format(selectedItem.totalSalary)} ₽` : 'N/A'}</p>
+            <p><strong>Средняя ЗП:</strong> {selectedItem.averageSalary != null ? `${new Intl.NumberFormat('ru-RU').format(Math.round(selectedItem.averageSalary))} ₽` : 'N/A'}</p>
           </>
         )}
       </DetailsModal>
@@ -211,7 +240,7 @@ export default function BrigadesPage() {
       {showNamesOnly ? (
         <NameList>{sortedBrigadeNames.map((name, index) => <li key={index}>{name}</li>)}</NameList>
       ) : (
-        <CardContainer>{sortedBrigades.map(brig => <BrigadeCard key={brig.id} brigade={brig} onClick={() => setSelectedItem(brig)} />)}</CardContainer>
+        <CardContainer>{filteredAndSortedBrigades.map(brig => <BrigadeCard key={brig.id} brigade={brig} onClick={() => setSelectedItem(brig)} />)}</CardContainer>
       )}
     </PageContainer>
   );

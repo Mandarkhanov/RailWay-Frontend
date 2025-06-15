@@ -68,7 +68,7 @@ const LogoutButton = styled.button`
     }
 `;
 
-export default function Header() {
+export default function Header({ setActiveView }) {
   const { user, logout } = useAuth();
   const navigate = useNavigate();
   
@@ -77,6 +77,9 @@ export default function Header() {
           navigate('/');
       } else {
           navigate('/user');
+          if (setActiveView) {
+            setActiveView('home');
+          }
       }
   };
 
